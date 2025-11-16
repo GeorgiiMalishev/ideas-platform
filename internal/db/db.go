@@ -25,9 +25,9 @@ func InitDB(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-func RunMigrations(cfg *config.Config) error {
+func RunMigrations(migrationsPath string, cfg *config.Config) error {
 	m, err := migrate.New(
-		"file://migrations",
+		migrationsPath,
 		fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 			cfg.DB.User, cfg.DB.Password, cfg.DB.Host, cfg.DB.Port, cfg.DB.Name, cfg.DB.SSLMode),
 	)

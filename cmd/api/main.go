@@ -28,7 +28,7 @@ func main() {
 		return
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
-	err = db.RunMigrations(cfg)
+	err = db.RunMigrations("file://migrations", cfg)
 	if err != nil {
 		logger.Error("Failed to run migrations:", slog.String("error", err.Error()))
 	}

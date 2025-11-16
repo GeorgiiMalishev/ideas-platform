@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/GeorgiiMalishev/ideas-platform/config"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/db"
@@ -23,6 +24,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -33,6 +35,7 @@ type RouterTestSuite struct {
 	cfg            *config.Config
 	userRepo       repository.UserRep
 	userRepository repository.UserRep
+	authRepo       repository.AuthRepository
 }
 
 func (suite *RouterTestSuite) SetupSuite() {
@@ -57,6 +60,12 @@ func (suite *RouterTestSuite) SetupSuite() {
 	}
 	suite.DB = database
 
+	// Run migrations
+	err = db.RunMigrations("file://../migrations", suite.cfg)
+	if err != nil {
+		suite.T().Fatalf("failed to run migrations: %v", err)
+	}
+
 	// Setup router
 	sqlDB, err := suite.DB.DB()
 	if err != nil {
@@ -66,7 +75,17 @@ func (suite *RouterTestSuite) SetupSuite() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
 	userUsecase := usecase.NewUserUsecase(suite.userRepository)
 	userHandler := handlers.NewUserHandler(userUsecase, logger)
-	appRouter := router.NewRouter(suite.cfg, userHandler, nil)
+
+	coffeeShopRepo := repository.NewCoffeeShopRepository(sqlDB)
+	csUscase := usecase.NewCoffeeShopUsecase(coffeeShopRepo)
+	csHandler := handlers.NewCoffeeShopHandler(csUscase, logger)
+
+	authRepo := repository.NewAuthRepository(suite.DB)
+	authUsecase := usecase.NewAuthUsecase(authRepo, "1234567890")
+	authHandler := handlers.NewAuthHandler(authUsecase, logger)
+	suite.authRepo = authRepo
+
+	appRouter := router.NewRouter(suite.cfg, userHandler, csHandler, authHandler)
 	suite.Router = appRouter.SetupRouter()
 }
 
@@ -117,33 +136,56 @@ func (suite *RouterTestSuite) TestHealthCheck() {
 	}
 }
 
-func (suite *RouterTestSuite) TestCreateUser() {
+func (suite *RouterTestSuite) TestVerifyOTP() {
 	tests := []struct {
 		name           string
-		input          dto.CreateUserRequest
+		setup          func(phone, otpCode string)
+		input          dto.VerifyOTPRequest
 		expectedStatus int
 		checkResponse  func(body []byte)
 	}{
 		{
-			name: "valid user",
-			input: dto.CreateUserRequest{
+			name: "valid new user",
+			setup: func(phone, otpCode string) {
+				hashedCode, _ := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
+				otp := &models.OTP{
+					Phone:        phone,
+					CodeHash:     string(hashedCode),
+					ExpiresAt:    time.Now().Add(5 * time.Minute),
+					AttemptsLeft: 3,
+				}
+				suite.DB.Create(otp)
+			},
+			input: dto.VerifyOTPRequest{
 				Name:  "testuser",
 				Phone: "1234567890",
+				OTP:   "123456",
 			},
-			expectedStatus: http.StatusCreated,
+			expectedStatus: http.StatusOK,
 			checkResponse: func(body []byte) {
-				var response dto.UserResponse
-				err := json.Unmarshal(body, &response)
+				var token dto.AuthResponse
+				err := json.Unmarshal(body, &token)
 				suite.NoError(err)
-				suite.Equal("testuser", response.Name)
-				suite.Equal("1234567890", response.Phone)
+				suite.NotEmpty(token.AccessToken)
+				suite.NotEmpty(token.RefreshToken)
 			},
 		},
 		{
 			name: "missing name",
-			input: dto.CreateUserRequest{
+			setup: func(phone, otpCode string) {
+				hashedCode, _ := bcrypt.GenerateFromPassword([]byte(otpCode), bcrypt.DefaultCost)
+				otp := &models.OTP{
+					Phone:        phone,
+					CodeHash:     string(hashedCode),
+					ExpiresAt:    time.Now().Add(5 * time.Minute),
+					AttemptsLeft: 3,
+				}
+				suite.DB.Create(otp)
+			},
+			input: dto.VerifyOTPRequest{
 				Name:  "",
 				Phone: "1111111111",
+				OTP:   "111111",
 			},
 			expectedStatus: http.StatusBadRequest,
 			checkResponse: func(body []byte) {
@@ -153,28 +195,16 @@ func (suite *RouterTestSuite) TestCreateUser() {
 				suite.Contains(response["error"], "name can't be empty")
 			},
 		},
-		{
-			name: "missing phone",
-			input: dto.CreateUserRequest{
-				Name:  "testuser2",
-				Phone: "",
-			},
-			expectedStatus: http.StatusBadRequest,
-			checkResponse: func(body []byte) {
-				var response map[string]string
-				err := json.Unmarshal(body, &response)
-				suite.NoError(err)
-				suite.Contains(response["error"], "phone can't be empty")
-			},
-		},
 	}
 
 	for _, test := range tests {
 		test := test
 		suite.Run(test.name, func() {
+			suite.TearDownTest()
+			test.setup(test.input.Phone, test.input.OTP)
 			testRequest := testRequest{
 				method:      "POST",
-				path:        "/api/v1/users",
+				path:        "/api/v1/auth",
 				body:        test.input,
 				contentType: "application/json",
 			}
@@ -197,7 +227,7 @@ func (suite *RouterTestSuite) TestGetAllUsers() {
 		{
 			name: "get all with one user",
 			setup: func() {
-				_, err := suite.userRepository.CreateUser(&models.User{Name: "testuser", Phone: "12345"})
+				_, err := suite.authRepo.CreateUser(&models.User{Name: "testuser", Phone: "12345"})
 				suite.Require().NoError(err)
 			},
 			expectedStatus: http.StatusOK,
@@ -250,11 +280,10 @@ func (suite *RouterTestSuite) TestGetUser() {
 		{
 			name: "get existing user",
 			setup: func() string {
-				user, err := suite.userRepository.CreateUser(&models.User{Name: "testuser", Phone: "12345"})
+				userID, err := suite.authRepo.CreateUser(&models.User{Name: "testuser", Phone: "12345"})
 				suite.Require().NoError(err)
-				return user.ID.String()
-			},
-			expectedStatus: http.StatusOK,
+				return userID.String()
+			}, expectedStatus: http.StatusOK,
 			checkResponse: func(body []byte, userID string) {
 				var response dto.UserResponse
 				err := json.Unmarshal(body, &response)
@@ -307,11 +336,10 @@ func (suite *RouterTestSuite) TestUpdateUser() {
 		{
 			name: "update existing user",
 			setup: func() string {
-				user, err := suite.userRepository.CreateUser(&models.User{Name: "testuser", Phone: "12345"})
+				userID, err := suite.authRepo.CreateUser(&models.User{Name: "testuser", Phone: "12345"})
 				suite.Require().NoError(err)
-				return user.ID.String()
-			},
-			input: dto.UpdateUserRequest{
+				return userID.String()
+			}, input: dto.UpdateUserRequest{
 				Name: "updateduser",
 			},
 			expectedStatus: http.StatusNoContent,
@@ -375,9 +403,9 @@ func (suite *RouterTestSuite) TestDeleteUser() {
 		{
 			name: "delete existing user",
 			setup: func() string {
-				user, err := suite.userRepository.CreateUser(&models.User{Name: "testuser", Phone: "12345"})
+				userID, err := suite.authRepo.CreateUser(&models.User{Name: "testuser", Phone: "12345"})
 				suite.Require().NoError(err)
-				return user.ID.String()
+				return userID.String()
 			},
 			expectedStatus: http.StatusNoContent,
 			checkResponse: func(w *httptest.ResponseRecorder) {
@@ -439,4 +467,3 @@ func (suite *RouterTestSuite) makeRequest(req testRequest) *httptest.ResponseRec
 	suite.Router.ServeHTTP(w, httpReq)
 	return w
 }
-

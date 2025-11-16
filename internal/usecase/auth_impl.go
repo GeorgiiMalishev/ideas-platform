@@ -2,6 +2,9 @@ package usecase
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -110,7 +113,7 @@ func (*AuthUsecaseImpl) updateResendCount(savedOTP *models.OTP) {
 }
 
 // VerifyOTP implements AuthUsecase.
-func (a *AuthUsecaseImpl) VerifyOTP(req *dto.VerifyOTPRequest) (*string, error) {
+func (a *AuthUsecaseImpl) VerifyOTP(req *dto.VerifyOTPRequest) (*dto.AuthResponse, error) {
 	savedOTP, err := a.rep.GetOTP(req.Phone)
 	if err != nil {
 		return nil, err
@@ -138,22 +141,7 @@ func (a *AuthUsecaseImpl) VerifyOTP(req *dto.VerifyOTPRequest) (*string, error) 
 		}
 	}
 
-	JWTClaims := models.JWTClaims{
-		UserID:       id.String(),
-		RefreshToken: "",
-		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 15)),
-		},
-	}
-
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims)
-	tokenString, err := jwtToken.SignedString([]byte(a.jwtSecret))
-	if err != nil {
-		return nil, err
-	}
-
-	return &tokenString, nil
+	return a.makeAuthResponse(*id, "")
 }
 
 func generateCode() (string, error) {
@@ -216,4 +204,129 @@ func (a *AuthUsecaseImpl) createOTP(phone, hashedCode string) error {
 		return err
 	}
 	return nil
+}
+
+// Logout implements AuthUsecase.
+func (a *AuthUsecaseImpl) Logout(tokenString string) error {
+	return a.rep.DeleteRefreshToken(tokenString)
+}
+
+func (a *AuthUsecaseImpl) LogoutEverywhere(userID uuid.UUID) error {
+	return a.rep.DeleteRefreshTokensByUserID(userID)
+}
+
+func (a *AuthUsecaseImpl) Refresh(oldTokenString string) (*dto.AuthResponse, error) {
+	oldToken, err := a.validateAndGetRefreshToken(oldTokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	return a.makeAuthResponse(oldToken.UserID, oldToken.RefreshToken)
+}
+
+func (a *AuthUsecaseImpl) makeAuthResponse(userID uuid.UUID, oldToken string) (*dto.AuthResponse, error) {
+	jwtToken, err := a.createJWTToken(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := a.createRefreshToken(userID, oldToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.AuthResponse{
+		AccessToken:  *jwtToken,
+		RefreshToken: *refreshToken,
+	}, nil
+}
+
+func (a *AuthUsecaseImpl) createRefreshToken(userID uuid.UUID, oldTokenString string) (*string, error) {
+	if oldTokenString != "" {
+		var errNotFound *apperrors.ErrNotFound
+		err := a.rep.DeleteRefreshToken(oldTokenString)
+		if err != nil && !errors.As(err, &errNotFound) {
+			return nil, err
+		}
+	}
+
+	newTokenString, err := generateRefreshToken()
+	if err != nil {
+		return nil, err
+	}
+	hashedToken := hashToken(newTokenString)
+	err = a.rep.CreateRefreshToken(&models.UserRefreshToken{
+		UserID:       userID,
+		RefreshToken: hashedToken,
+		ExpiresAt:    time.Now().Add(time.Hour * 24 * 30),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &newTokenString, nil
+}
+
+func (a *AuthUsecaseImpl) parseClaims(tokenString string) (*dto.JWTClaims, error) {
+	var claims dto.JWTClaims
+	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, apperrors.NewAuthErr(fmt.Sprintf("unexpexted singing method: %v", token.Header["alg"]))
+		}
+
+		return []byte(a.jwtSecret), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*dto.JWTClaims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, apperrors.NewAuthErr("invalid token")
+}
+
+func (a *AuthUsecaseImpl) validateAndGetRefreshToken(token string) (*models.UserRefreshToken, error) {
+	hashedToken := hashToken(token)
+	savedToken, err := a.rep.GetRefreshToken(hashedToken)
+	if err != nil {
+		return nil, err
+	}
+
+	if !savedToken.ExpiresAt.After(time.Now()) {
+		return nil, apperrors.NewAuthErr("token expired")
+	}
+	return savedToken, nil
+}
+
+func hashToken(token string) string {
+	hash := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(hash[:])
+}
+
+func (a *AuthUsecaseImpl) createJWTToken(userID uuid.UUID) (*string, error) {
+	JWTClaims := dto.JWTClaims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 15)),
+		},
+	}
+
+	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTClaims)
+	tokenString, err := jwtToken.SignedString([]byte(a.jwtSecret))
+	if err != nil {
+		return nil, err
+	}
+	return &tokenString, nil
+}
+
+func generateRefreshToken() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+
+	return base64.URLEncoding.EncodeToString(bytes), nil
 }

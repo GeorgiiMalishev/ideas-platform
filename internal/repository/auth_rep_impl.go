@@ -39,15 +39,15 @@ func (r *authRepository) DeleteOTP(phone string) error {
 }
 
 func (r *authRepository) GetUserIDByPhone(phone string) (*uuid.UUID, error) {
-	var id uuid.UUID
-	err := r.db.Model(&models.User{}).Where("phone = ?", phone).Pluck("id", &id).Error
+	var user models.User
+	err := r.db.Where("phone = ?", phone).First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, apperrors.NewErrNotFound("user", phone)
 		}
 		return nil, err
 	}
-	return &id, nil
+	return &user.ID, nil
 }
 
 func (r *authRepository) CreateUser(user *models.User) (*uuid.UUID, error) {
@@ -56,4 +56,38 @@ func (r *authRepository) CreateUser(user *models.User) (*uuid.UUID, error) {
 		return nil, err
 	}
 	return &user.ID, nil
+}
+
+// CreateRefreshToken creates a new refresh token.
+func (r *authRepository) CreateRefreshToken(token *models.UserRefreshToken) error {
+	return r.db.Create(token).Error
+}
+
+// GetRefreshToken retrieves a token by its value.
+func (r *authRepository) GetRefreshToken(token string) (*models.UserRefreshToken, error) {
+	var refreshToken models.UserRefreshToken
+	if err := r.db.First(&refreshToken, "refresh_token = ?", token).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, apperrors.NewErrNotFound("refresh token", token)
+		}
+		return nil, err
+	}
+	return &refreshToken, nil
+}
+
+// DeleteRefreshToken deletes a token by its value.
+func (r *authRepository) DeleteRefreshToken(token string) error {
+	result := r.db.Where("refresh_token = ?", token).Delete(&models.UserRefreshToken{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return apperrors.NewErrNotFound("refresh token", token)
+	}
+	return nil
+}
+
+// DeleteRefreshTokensByUserID deletes all refresh tokens for a specific user.
+func (r *authRepository) DeleteRefreshTokensByUserID(userID uuid.UUID) error {
+	return r.db.Where("user_id = ?", userID).Delete(&models.UserRefreshToken{}).Error
 }

@@ -12,4 +12,10 @@ type AuthRepository interface {
 	DeleteOTP(phone string) error
 	GetUserIDByPhone(phone string) (*uuid.UUID, error)
 	CreateUser(*models.User) (*uuid.UUID, error)
+
+	// Refresh Token
+	CreateRefreshToken(token *models.UserRefreshToken) error
+	GetRefreshToken(token string) (*models.UserRefreshToken, error)
+	DeleteRefreshToken(token string) error
+	DeleteRefreshTokensByUserID(userID uuid.UUID) error
 }

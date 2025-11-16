@@ -42,7 +42,7 @@ func (ar AppRouter) SetupRouter() *gin.Engine {
 		v1.PUT("/users/:id", ar.userHandler.UpdateUser)
 		v1.DELETE("/users/:id", ar.userHandler.DeleteUser)
 
-		// coffe_shop
+		// coffee_shop
 		v1.POST("/coffee-shops", ar.coffeeShopHandler.CreateCoffeeShop)
 		v1.GET("/coffee-shops", ar.coffeeShopHandler.GetAllCoffeeShops)
 		v1.GET("/coffee-shops/:id", ar.coffeeShopHandler.GetCoffeeShop)
@@ -52,6 +52,9 @@ func (ar AppRouter) SetupRouter() *gin.Engine {
 		// auth
 		v1.GET("/auth/:phone", ar.authHandler.GetOTP)
 		v1.POST("/auth", ar.authHandler.VerifyOTP)
+		v1.POST("/auth/refresh", ar.authHandler.Refresh)
+		v1.POST("/logout", ar.authHandler.Logout)
+		v1.POST("/logout-everywhere", ar.authHandler.LogoutEverywhere)
 	}
 
 	return r
