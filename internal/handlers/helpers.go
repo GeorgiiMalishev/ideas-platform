@@ -18,6 +18,7 @@ func HandleAppErrors(err error, logger *slog.Logger, c *gin.Context) {
 	var authErr *apperrors.ErrUnauthorized
 	var errRateLimit *apperrors.ErrRateLimit
 	var errAccessDenied *apperrors.ErrAccessDenied
+	var errConflict *apperrors.ErrConflict
 	if errors.As(err, &errNotFound) {
 		c.JSON(http.StatusNotFound, &dto.ErrorResponse{Message: err.Error()})
 		return
@@ -36,6 +37,10 @@ func HandleAppErrors(err error, logger *slog.Logger, c *gin.Context) {
 	}
 	if errors.As(err, &errAccessDenied) {
 		c.JSON(http.StatusForbidden, &dto.ErrorResponse{Message: err.Error()})
+		return
+	}
+	if errors.As(err, &errConflict) {
+		c.JSON(http.StatusConflict, &dto.ErrorResponse{Message: err.Error()})
 		return
 	}
 

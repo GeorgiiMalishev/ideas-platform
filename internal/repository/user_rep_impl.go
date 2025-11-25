@@ -36,7 +36,7 @@ func (u *UserRepImpl) GetAllUsers(limit int, offset int) ([]models.User, error) 
 
 func (u *UserRepImpl) GetUser(ID uuid.UUID) (*models.User, error) {
 	var user models.User
-	err := u.db.Where("id = ? AND is_deleted = ?", ID, false).First(&user).Error
+	err := u.db.Preload("Role").Where("id = ? AND is_deleted = ?", ID, false).First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, apperrors.NewErrNotFound("user", ID.String())

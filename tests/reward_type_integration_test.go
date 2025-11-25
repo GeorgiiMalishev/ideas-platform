@@ -35,7 +35,7 @@ func (suite *RewardTypeIntegrationTestSuite) TestCreateRewardType() {
 	}{
 		{
 			name:           "create reward type with coffee shop admin",
-			expectedStatus: 200,
+			expectedStatus: http.StatusCreated,
 			needCheckResp:  true,
 			setup: func() (string, dto.CreateRewardTypeRequest) {
 				admin := models.User{
@@ -49,6 +49,14 @@ func (suite *RewardTypeIntegrationTestSuite) TestCreateRewardType() {
 					CreatorID: admin.ID,
 				})
 				suite.Require().NoError(err)
+
+				// Make the admin a worker in the shop
+				err = suite.DB.Create(&models.WorkerCoffeeShop{
+					WorkerID:     &admin.ID,
+					CoffeeShopID: &shop.ID,
+				}).Error
+				suite.Require().NoError(err)
+
 				req := dto.CreateRewardTypeRequest{
 					CoffeeShopID: shop.ID,
 					Description:  "test reward type",
@@ -58,7 +66,7 @@ func (suite *RewardTypeIntegrationTestSuite) TestCreateRewardType() {
 		},
 		{
 			name:           "create reward type with coffee shop not admin",
-			expectedStatus: 403,
+			expectedStatus: http.StatusForbidden,
 			needCheckResp:  false,
 			setup: func() (string, dto.CreateRewardTypeRequest) {
 				user := models.User{

@@ -127,11 +127,6 @@ func (r *RewardTypeUsecaseImpl) UpdateRewardType(updaterID uuid.UUID, updaterRol
 	return nil
 }
 
-func isWorker(userID uuid.UUID, coffeeShop *models.CoffeeShop) (bool, error) {
-	// TODO: реализовать метод проверки является ли этот пользователь работником этого кофешопа
-	return true, nil
-}
-
 func (r *RewardTypeUsecaseImpl) checkAccessToRewardType(userID uuid.UUID, coffeeShop *models.CoffeeShop, userRole string) error {
 	logger := r.logger.With("method", "checkAccessToRewardType", "user id", userID.String(), "user role", userRole, "coffee shop id", coffeeShop.ID.String())
 	logger.Debug("starting check access to reward type")
@@ -141,7 +136,7 @@ func (r *RewardTypeUsecaseImpl) checkAccessToRewardType(userID uuid.UUID, coffee
 		return apperrors.NewErrAccessDenied("forbidden")
 	}
 
-	isWorker, err := isWorker(userID, coffeeShop)
+	isWorker, err := r.csRep.IsWorker(userID, coffeeShop.ID)
 	if err != nil {
 		return err
 	}

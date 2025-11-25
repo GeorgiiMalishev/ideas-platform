@@ -22,6 +22,10 @@ func (r *ideaRepository) CreateIdea(idea *models.Idea) (*models.Idea, error) {
 	if err := r.db.Create(idea).Error; err != nil {
 		return nil, err
 	}
+	// Reload the idea to get all associations
+	if err := r.db.Preload("CoffeeShop").First(idea, idea.ID).Error; err != nil {
+		return nil, err
+	}
 	return idea, nil
 }
 

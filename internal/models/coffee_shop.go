@@ -25,6 +25,8 @@ type WorkerCoffeeShop struct {
 	Worker       User       `gorm:"foreignKey:WorkerID;references:ID;constraint:OnDelete:CASCADE"`
 	CoffeeShopID *uuid.UUID `gorm:"type:uuid"`
 	CoffeeShop   CoffeeShop `gorm:"foreignKey:CoffeeShopID;references:ID;constraint:OnDelete:CASCADE"`
+	RoleID       *uuid.UUID `gorm:"type:uuid"`
+	Role         Role       `gorm:"foreignKey:RoleID;references:ID;constraint:OnDelete:CASCADE"`
 	IsDeleted    bool       `gorm:"default:false"`
 	CreatedAt    time.Time  `gorm:"autoCreateTime"`
 }

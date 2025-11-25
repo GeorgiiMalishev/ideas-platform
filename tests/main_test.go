@@ -36,10 +36,11 @@ type BaseTestSuite struct {
 	UserRepo       repository.UserRep
 	CoffeeShopRepo repository.CoffeeShopRep
 	IdeaRepo       repository.IdeaRepository
-	RewardRepo     repository.RewardRepository
-	RewardTypeRepo repository.RewardTypeRepository
-	UserRoleID     uuid.UUID
-	AdminRoleID    uuid.UUID
+	RewardRepo           repository.RewardRepository
+	RewardTypeRepo       repository.RewardTypeRepository
+	WorkerCoffeeShopRepo repository.WorkerCoffeeShopRepository
+	UserRoleID           uuid.UUID
+	AdminRoleID          uuid.UUID
 }
 
 // TestRequest is a helper struct for making requests
@@ -95,6 +96,7 @@ func (suite *BaseTestSuite) SetupSuite() {
 	suite.IdeaRepo = repository.NewIdeaRepository(suite.DB)
 	suite.RewardRepo = repository.NewRewardRepository(suite.DB)
 	suite.RewardTypeRepo = repository.NewRewardTypeRepository(suite.DB)
+	suite.WorkerCoffeeShopRepo = repository.NewWorkerCoffeeShopRepository(suite.DB)
 
 	// Usecases
 	authUsecase := usecase.NewAuthUsecase(suite.AuthRepo, "test-secret", &suite.cfg.AuthConfig, logger)
@@ -103,6 +105,7 @@ func (suite *BaseTestSuite) SetupSuite() {
 	ideaUsecase := usecase.NewIdeaUsecase(suite.IdeaRepo, logger)
 	rewardUsecase := usecase.NewRewardUsecase(suite.RewardRepo, suite.IdeaRepo, logger)
 	rewardTypeUsecase := usecase.NewRewardTypeUsecase(suite.RewardTypeRepo, suite.CoffeeShopRepo, logger)
+	workerCoffeeShopUsecase := usecase.NewWorkerCoffeeShopUsecase(suite.WorkerCoffeeShopRepo, suite.CoffeeShopRepo, suite.UserRepo, logger)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authUsecase, logger)
@@ -111,9 +114,10 @@ func (suite *BaseTestSuite) SetupSuite() {
 	ideaHandler := handlers.NewIdeaHandler(ideaUsecase, logger)
 	rewardHandler := handlers.NewRewardHandler(rewardUsecase, logger)
 	rewardTypeHandler := handlers.NewRewardTypeHandler(rewardTypeUsecase, logger)
+	workerCoffeeShopHandler := handlers.NewWorkerCoffeeShopHandler(workerCoffeeShopUsecase, logger)
 
 	// Router
-	appRouter := router.NewRouter(suite.cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, authUsecase, logger)
+	appRouter := router.NewRouter(suite.cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, authUsecase, logger)
 	suite.Router = appRouter.SetupRouter()
 
 	adminRole := models.Role{

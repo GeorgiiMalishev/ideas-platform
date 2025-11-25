@@ -12,4 +12,5 @@ type CoffeeShopRep interface {
 	GetCoffeeShop(ID uuid.UUID) (*models.CoffeeShop, error)
 	GetAllCoffeeShops(limit, offset int) ([]models.CoffeeShop, error)
 	IsCoffeeShopExist(ID uuid.UUID) (bool, error)
+	IsWorker(userID, shopID uuid.UUID) (bool, error)
 }

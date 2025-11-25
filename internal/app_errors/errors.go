@@ -64,3 +64,15 @@ func NewErrRateLimit(message string) error {
 func (err *ErrRateLimit) Error() string {
 	return err.message
 }
+
+type ErrConflict struct {
+	message string
+}
+
+func NewErrConflict(message string) error {
+	return &ErrConflict{message: message}
+}
+
+func (err *ErrConflict) Error() string {
+	return err.message
+}

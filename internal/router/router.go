@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/GeorgiiMalishev/ideas-platform/config"
+	_ "github.com/GeorgiiMalishev/ideas-platform/docs" // swagger docs
 	"github.com/GeorgiiMalishev/ideas-platform/internal/handlers"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/middleware"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/usecase"
@@ -13,13 +14,14 @@ import (
 )
 
 type AppRouter struct {
-	cfg               *config.Config
-	userHandler       *handlers.UserHandler
-	coffeeShopHandler *handlers.CoffeeShopHandler
-	authHandler       *handlers.AuthHandler
-	ideaHandler       *handlers.IdeaHandler
-	rewardHandler     *handlers.RewardHandler
-	rewardTypeHandler *handlers.RewardTypeHandler
+	cfg                     *config.Config
+	userHandler             *handlers.UserHandler
+	coffeeShopHandler       *handlers.CoffeeShopHandler
+	authHandler             *handlers.AuthHandler
+	ideaHandler             *handlers.IdeaHandler
+	rewardHandler           *handlers.RewardHandler
+	rewardTypeHandler       *handlers.RewardTypeHandler
+	workerCoffeeShopHandler *handlers.WorkerCoffeeShopHandler
 
 	authUsecase usecase.AuthUsecase
 	logger      *slog.Logger
@@ -32,18 +34,20 @@ func NewRouter(cfg *config.Config,
 	ideaHandler *handlers.IdeaHandler,
 	rewardHandler *handlers.RewardHandler,
 	rewardTypeHandler *handlers.RewardTypeHandler,
+	workerCoffeeShopHandler *handlers.WorkerCoffeeShopHandler,
 
 	authUsecase usecase.AuthUsecase,
 	logger *slog.Logger,
 ) *AppRouter {
 	return &AppRouter{
-		cfg:               cfg,
-		userHandler:       userHandler,
-		coffeeShopHandler: coffeeShopHandler,
-		authHandler:       authHandler,
-		ideaHandler:       ideaHandler,
-		rewardHandler:     rewardHandler,
-		rewardTypeHandler: rewardTypeHandler,
+		cfg:                     cfg,
+		userHandler:             userHandler,
+		coffeeShopHandler:       coffeeShopHandler,
+		authHandler:             authHandler,
+		ideaHandler:             ideaHandler,
+		rewardHandler:           rewardHandler,
+		rewardTypeHandler:       rewardTypeHandler,
+		workerCoffeeShopHandler: workerCoffeeShopHandler,
 
 		authUsecase: authUsecase,
 		logger:      logger,
@@ -101,20 +105,26 @@ func (ar AppRouter) SetupRouter() *gin.Engine {
 		authRequired.POST("/ideas", ar.ideaHandler.CreateIdea)
 		authRequired.PUT("/ideas/:id", ar.ideaHandler.UpdateIdea)
 		authRequired.DELETE("/ideas/:id", ar.ideaHandler.DeleteIdea)
-
-		authRequired.GET("/rewards/type/:id", ar.rewardTypeHandler.GetRewardType)
-	}
-
-	adminRequired := authRequired.Group("/admin")
-	adminRequired.Use(middleware.AdminFilter(ar.logger))
-	{
-		adminRequired.GET("/health", handlers.HealthCheck(ar.cfg))
-		adminRequired.POST("/rewards", ar.rewardHandler.GiveReward)
-		adminRequired.DELETE("/rewards/:id", ar.rewardHandler.RevokeReward)
-
-		adminRequired.POST("/rewards/type", ar.rewardTypeHandler.CreateRewardType)
-		adminRequired.PUT("/rewards/type/:id", ar.rewardTypeHandler.UpdateRewardType)
-		adminRequired.DELETE("/rewards/type/:id", ar.rewardTypeHandler.DeleteRewardType)
-	}
-	return r
-}
+		        authRequired.GET("/rewards/type/:id", ar.rewardTypeHandler.GetRewardType)
+		
+		        authRequired.GET("/users/:id/coffee-shops", ar.workerCoffeeShopHandler.ListCoffeeShopsForWorker)
+		    }
+		
+		    adminRequired := authRequired.Group("/admin")
+		    adminRequired.Use(middleware.AdminFilter(ar.logger))
+		    {
+		        adminRequired.GET("/health", handlers.HealthCheck(ar.cfg))
+		        adminRequired.POST("/rewards", ar.rewardHandler.GiveReward)
+		        adminRequired.DELETE("/rewards/:id", ar.rewardHandler.RevokeReward)
+		
+		        adminRequired.POST("/rewards/type", ar.rewardTypeHandler.CreateRewardType)
+		        adminRequired.PUT("/rewards/type/:id", ar.rewardTypeHandler.UpdateRewardType)
+		        adminRequired.DELETE("/rewards/type/:id", ar.rewardTypeHandler.DeleteRewardType)
+		
+		        // worker-coffee-shops
+		        adminRequired.POST("/worker-coffee-shops", ar.workerCoffeeShopHandler.AddWorker)
+		        adminRequired.DELETE("/worker-coffee-shops/:id", ar.workerCoffeeShopHandler.RemoveWorker)
+		        adminRequired.GET("/coffee-shops/:id/workers", ar.workerCoffeeShopHandler.ListWorkersInShop)
+		    }
+		    return r
+		}

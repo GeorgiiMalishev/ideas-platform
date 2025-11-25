@@ -74,3 +74,15 @@ func (r *CoffeeShopRepImpl) IsCoffeeShopExist(ID uuid.UUID) (bool, error) {
 	}
 	return count > 0, nil
 }
+
+// IsWorker implements CoffeeShopRep.
+func (r *CoffeeShopRepImpl) IsWorker(userID uuid.UUID, shopID uuid.UUID) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.WorkerCoffeeShop{}).Where("worker_id = ? and coffee_shop_id = ?", userID, shopID).Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
