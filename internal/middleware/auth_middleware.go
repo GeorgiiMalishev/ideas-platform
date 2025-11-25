@@ -32,7 +32,6 @@ func AuthMiddleware(uc usecase.AuthUsecase, logger *slog.Logger) gin.HandlerFunc
 		}
 
 		c.Set("user_id", claims.UserID)
-		c.Set("role", claims.Role)
 		c.Next()
 	}
 }

@@ -12,12 +12,20 @@ import (
 )
 
 type UserUsecaseImpl struct {
-	rep    repository.UserRep
-	logger *slog.Logger
+	rep         repository.UserRep
+	workerCsRep repository.WorkerCoffeeShopRepository
+	logger      *slog.Logger
 }
 
-func NewUserUsecase(rep repository.UserRep, logger *slog.Logger) UserUsecase {
-	return &UserUsecaseImpl{rep: rep, logger: logger}
+func NewUserUsecase(rep repository.UserRep,
+	workerCsRep repository.WorkerCoffeeShopRepository,
+	logger *slog.Logger,
+) UserUsecase {
+	return &UserUsecaseImpl{
+		rep:         rep,
+		workerCsRep: workerCsRep,
+		logger:      logger,
+	}
 }
 
 // DeleteUser implements IUserUsecase.
@@ -45,13 +53,13 @@ func (u *UserUsecaseImpl) DeleteUser(requesterID, ID uuid.UUID) error {
 }
 
 // GetAllUsers implements IUserUsecase.
-func (u *UserUsecaseImpl) GetAllUsers(role string, page int, limit int) ([]dto.UserResponse, error) {
+func (u *UserUsecaseImpl) GetAllUsers(actorID uuid.UUID, page int, limit int) ([]dto.UserResponse, error) {
 	logger := u.logger.With("method", "GetAllUsers", "page", page, "limit", limit)
 	logger.Debug("starting get all users")
 
-	if role != "admin" {
-		logger.Info("access denied")
-		return nil, apperrors.NewErrAccessDenied("forbidden")
+	err := CheckAnyShopAdminAccess(logger, u.workerCsRep, actorID)
+	if err != nil {
+		return nil, err
 	}
 
 	if limit <= 0 || limit > 25 {
@@ -71,13 +79,14 @@ func (u *UserUsecaseImpl) GetAllUsers(role string, page int, limit int) ([]dto.U
 }
 
 // GetUser implements IUserUsecase.
-func (u *UserUsecaseImpl) GetUser(role string, requesterID, ID uuid.UUID) (*dto.UserResponse, error) {
+func (u *UserUsecaseImpl) GetUser(actorID, ID uuid.UUID) (*dto.UserResponse, error) {
 	logger := u.logger.With("method", "GetUser", "userID", ID.String())
 	logger.Debug("starting get user")
 
-	if !isOwner(requesterID, ID) && role != "admin" {
-		logger.Info("access denied")
-		return nil, apperrors.NewErrAccessDenied("forbidden")
+	if !isOwner(actorID, ID) {
+		if err := CheckAnyShopAdminAccess(logger, u.workerCsRep, actorID); err != nil {
+			return nil, err
+		}
 	}
 
 	user, err := u.rep.GetUser(ID)

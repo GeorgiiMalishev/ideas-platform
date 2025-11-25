@@ -81,11 +81,25 @@ func (r *WorkerCoffeeShopRepositoryImpl) Delete(id uuid.UUID) error {
 	return nil
 }
 
-// IsWorkerInShop checks if a user is an active worker in a specific coffee shop
-func (r *WorkerCoffeeShopRepositoryImpl) IsWorkerInShop(workerID, shopID uuid.UUID) (bool, error) {
+func (r *WorkerCoffeeShopRepositoryImpl) GetByUserIDAndShopID(userID, shopID uuid.UUID) (*models.WorkerCoffeeShop, error) {
+	var worker *models.WorkerCoffeeShop
+	err := r.db.Preload("Worker").Preload("CoffeeShop").
+		Where("worker_id = ? AND coffee_shop_id = ? AND is_deleted = ?", userID, shopID, false).
+		First(&worker).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewErrNotFound("worker coffee shop", "user ID: "+userID.String()+" coffee shop ID: "+shopID.String())
+		}
+		return nil, err
+	}
+	return worker, nil
+}
+
+func (r *WorkerCoffeeShopRepositoryImpl) IsAdminInAnyShop(userID uuid.UUID) (bool, error) {
 	var count int64
 	err := r.db.Model(&models.WorkerCoffeeShop{}).
-		Where("worker_id = ? AND coffee_shop_id = ? AND is_deleted = ?", workerID, shopID, false).
+		Joins("JOIN role ON role.id = worker_coffee_shop.role_id").
+		Where("worker_coffee_shop.worker_id = ? AND role.name = ?", userID, "admin").
 		Count(&count).Error
 	if err != nil {
 		return false, err

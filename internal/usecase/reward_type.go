@@ -15,15 +15,15 @@ type RewardTypeUsecase interface {
 	// CreateRewardType Создать тип награды. Проверяется принадлежность создателя к кофейне и роль создателя.
 	// Возвращает ошибку если этот пользователь не обладает правами чтобы создать тип награды в этой кофене
 	// или когда произошли ошибки валидации
-	CreateRewardType(creatorID uuid.UUID, creatorRole string, request *dto.CreateRewardTypeRequest) (*dto.RewardTypeResponse, error)
+	CreateRewardType(actorID uuid.UUID, request *dto.CreateRewardTypeRequest) (*dto.RewardTypeResponse, error)
 
 	// UpdateRewardType Обновить тип награды. Проверяется принадлежность пользователя к кофейне и роль пользователя.
 	// Возвращает ошибку если этот пользователь не обладает правами чтобы обновить тип награды в этой кофене
 	// или когда произошли ошибки валидации
-	UpdateRewardType(updaterID uuid.UUID, updaterRole string, rewardTypeID uuid.UUID, request *dto.UpdateRewardTypeRequest) error
+	UpdateRewardType(actorID uuid.UUID, rewardTypeID uuid.UUID, request *dto.UpdateRewardTypeRequest) error
 
 	// DeleteRewardType Удалить тип награды. Проверяется принадлежность пользователя к кофейне и роль пользователя.
 	// Возвращает ошибку если этот пользователь не обладает правами чтобы удалить тип награды в этой кофене
 	// или если типа награды с таким uuid нет
-	DeleteRewardType(deleterID uuid.UUID, deleterRole string, rewardTypeID uuid.UUID) error
+	DeleteRewardType(actorID uuid.UUID, rewardTypeID uuid.UUID) error
 }

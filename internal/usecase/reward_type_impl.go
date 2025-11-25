@@ -3,7 +3,6 @@ package usecase
 import (
 	"log/slog"
 
-	apperrors "github.com/GeorgiiMalishev/ideas-platform/internal/app_errors"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/dto"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/models"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/repository"
@@ -11,33 +10,31 @@ import (
 )
 
 type RewardTypeUsecaseImpl struct {
-	rep    repository.RewardTypeRepository
-	csRep  repository.CoffeeShopRep
-	logger *slog.Logger
+	rep         repository.RewardTypeRepository
+	csRep       repository.CoffeeShopRep
+	workerCsRep repository.WorkerCoffeeShopRepository
+	logger      *slog.Logger
 }
 
 func NewRewardTypeUsecase(rep repository.RewardTypeRepository,
 	csRep repository.CoffeeShopRep,
+	workerCsRep repository.WorkerCoffeeShopRepository,
 	logger *slog.Logger,
 ) RewardTypeUsecase {
 	return &RewardTypeUsecaseImpl{
-		rep:    rep,
-		csRep:  csRep,
-		logger: logger,
+		rep:         rep,
+		csRep:       csRep,
+		workerCsRep: workerCsRep,
+		logger:      logger,
 	}
 }
 
 // CreateRewardType implements RewardTypeUsecase.
-func (r *RewardTypeUsecaseImpl) CreateRewardType(creatorID uuid.UUID, creatorRole string, request *dto.CreateRewardTypeRequest) (*dto.RewardTypeResponse, error) {
-	logger := r.logger.With("method", "CreateRewardType", "creator id", creatorID.String(), "creator role", creatorRole, "coffee shop id", request.CoffeeShopID.String())
+func (r *RewardTypeUsecaseImpl) CreateRewardType(creatorID uuid.UUID, request *dto.CreateRewardTypeRequest) (*dto.RewardTypeResponse, error) {
+	logger := r.logger.With("method", "CreateRewardType", "creator id", creatorID.String(), "coffee shop id", request.CoffeeShopID.String())
 	logger.Debug("starting create reward type")
 
-	coffeeShop, err := r.csRep.GetCoffeeShop(request.CoffeeShopID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = r.checkAccessToRewardType(creatorID, coffeeShop, creatorRole)
+	err := CheckShopAdminAccess(logger, r.workerCsRep, creatorID, request.CoffeeShopID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,15 +51,15 @@ func (r *RewardTypeUsecaseImpl) CreateRewardType(creatorID uuid.UUID, creatorRol
 }
 
 // DeleteRewardType implements RewardTypeUsecase.
-func (r *RewardTypeUsecaseImpl) DeleteRewardType(deleterID uuid.UUID, deleterRole string, rewardTypeID uuid.UUID) error {
-	logger := r.logger.With("method", "DeleteRewardType", "deleter id", deleterID.String(), "deleter role", deleterRole)
+func (r *RewardTypeUsecaseImpl) DeleteRewardType(deleterID uuid.UUID, rewardTypeID uuid.UUID) error {
+	logger := r.logger.With("method", "DeleteRewardType", "deleter id", deleterID.String())
 	logger.Debug("starting delete reward type")
 	rewardType, err := r.rep.GetRewardType(rewardTypeID)
 	if err != nil {
 		return err
 	}
 
-	err = r.checkAccessToRewardType(deleterID, rewardType.CoffeeShop, deleterRole)
+	err = CheckShopAdminAccess(logger, r.workerCsRep, deleterID, *rewardType.CoffeeShopID)
 	if err != nil {
 		return err
 	}
@@ -101,15 +98,15 @@ func (r *RewardTypeUsecaseImpl) GetRewardsTypesFromCoffeeShop(coffeeShopID uuid.
 }
 
 // UpdateRewardType implements RewardTypeUsecase.
-func (r *RewardTypeUsecaseImpl) UpdateRewardType(updaterID uuid.UUID, updaterRole string, rewardTypeID uuid.UUID, request *dto.UpdateRewardTypeRequest) error {
-	logger := r.logger.With("method", "UpdateRewardType", "updater id", updaterID.String(), "updater role", updaterRole)
+func (r *RewardTypeUsecaseImpl) UpdateRewardType(updaterID uuid.UUID, rewardTypeID uuid.UUID, request *dto.UpdateRewardTypeRequest) error {
+	logger := r.logger.With("method", "UpdateRewardType", "updater id", updaterID.String())
 	logger.Debug("starting update reward type")
 	rewardType, err := r.rep.GetRewardType(rewardTypeID)
 	if err != nil {
 		return err
 	}
 
-	err = r.checkAccessToRewardType(updaterID, rewardType.CoffeeShop, updaterRole)
+	err = CheckShopAdminAccess(logger, r.workerCsRep, updaterID, *rewardType.CoffeeShopID)
 	if err != nil {
 		return err
 	}
@@ -124,27 +121,6 @@ func (r *RewardTypeUsecaseImpl) UpdateRewardType(updaterID uuid.UUID, updaterRol
 	}
 
 	logger.Info("reward type updated successfully")
-	return nil
-}
-
-func (r *RewardTypeUsecaseImpl) checkAccessToRewardType(userID uuid.UUID, coffeeShop *models.CoffeeShop, userRole string) error {
-	logger := r.logger.With("method", "checkAccessToRewardType", "user id", userID.String(), "user role", userRole, "coffee shop id", coffeeShop.ID.String())
-	logger.Debug("starting check access to reward type")
-
-	if userRole != "admin" {
-		logger.Info("thst user dont have permissons for reward type")
-		return apperrors.NewErrAccessDenied("forbidden")
-	}
-
-	isWorker, err := r.csRep.IsWorker(userID, coffeeShop.ID)
-	if err != nil {
-		return err
-	}
-	if !isWorker {
-		logger.Info("that user is not worker for this coffee shop")
-		return apperrors.NewErrAccessDenied("that user is not worker for this coffee shop")
-	}
-
 	return nil
 }
 

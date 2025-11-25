@@ -60,38 +60,38 @@ func parseUUID(logger *slog.Logger, c *gin.Context) (uuid.UUID, bool) {
 	return id, true
 }
 
-func parseUserIDFromContext(logger *slog.Logger, c *gin.Context) (uuid.UUID, bool) {
-	userIDAny, exist := c.Get("user_id")
+func parseActorIDFromContext(logger *slog.Logger, c *gin.Context) (uuid.UUID, bool) {
+	actorIDAny, exist := c.Get("user_id")
 	if !exist {
 		logger.Info("unathorized user", "path", c.Request.URL.Path)
 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Message: "user not authorized"})
 		return uuid.Nil, false
 	}
 
-	userID, ok := userIDAny.(uuid.UUID)
+	actorID, ok := actorIDAny.(uuid.UUID)
 	if !ok {
-		logger.Error("unexpected err", "path", c.Request.URL.Path, "user id", userID.String())
+		logger.Error("unexpected err", "path", c.Request.URL.Path, "user id", actorID.String())
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Message: "internal server error"})
 		return uuid.Nil, false
 	}
 
-	return userID, true
+	return actorID, true
 }
 
-func parseRoleFromContext(logger *slog.Logger, c *gin.Context) (string, bool) {
-	roleAny, exist := c.Get("role")
-	if !exist {
-		logger.Info("unathorized user", "path", c.Request.URL.Path)
-		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Message: "user not authorized"})
-		return "", false
-	}
-
-	role, ok := roleAny.(string)
-	if !ok {
-		logger.Error("unexpected err", "path", c.Request.URL.Path, "role", role)
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Message: "internal server error"})
-		return "", false
-	}
-
-	return role, true
-}
+//func parseRoleFromContext(logger *slog.Logger, c *gin.Context) (string, bool) {
+// 	roleAny, exist := c.Get("role")
+// 	if !exist {
+// 		logger.Info("unathorized user", "path", c.Request.URL.Path)
+// 		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Message: "user not authorized"})
+// 		return "", false
+// 	}
+//
+// 	role, ok := roleAny.(string)
+// 	if !ok {
+// 		logger.Error("unexpected err", "path", c.Request.URL.Path, "role", role)
+// 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Message: "internal server error"})
+// 		return "", false
+// 	}
+//
+// 	return role, true
+// }

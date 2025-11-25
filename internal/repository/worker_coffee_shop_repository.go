@@ -12,5 +12,6 @@ type WorkerCoffeeShopRepository interface {
 	ListByWorkerID(workerID uuid.UUID, limit, offset int) ([]models.WorkerCoffeeShop, error)
 	Update(workerShop *models.WorkerCoffeeShop) error
 	Delete(id uuid.UUID) error
-	IsWorkerInShop(workerID, shopID uuid.UUID) (bool, error)
+	GetByUserIDAndShopID(userID, shopID uuid.UUID) (*models.WorkerCoffeeShop, error)
+	IsAdminInAnyShop(userID uuid.UUID) (bool, error)
 }

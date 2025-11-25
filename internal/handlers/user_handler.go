@@ -32,18 +32,16 @@ func NewUserHandler(uc usecase.UserUsecase, logger *slog.Logger) *UserHandler {
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /users [get]
 func (h UserHandler) GetAllUsers(c *gin.Context) {
+	actorID, ok := parseActorIDFromContext(h.logger, c)
+	if !ok {
+		return
+	}
 	pageRaw := c.Query("page")
 	limitRaw := c.Query("limit")
 
 	page, _ := strconv.Atoi(pageRaw)
 	limit, _ := strconv.Atoi(limitRaw)
-
-	role, ok := parseRoleFromContext(h.logger, c)
-	if !ok {
-		return
-	}
-
-	resp, err := h.uc.GetAllUsers(role, page, limit)
+	resp, err := h.uc.GetAllUsers(actorID, page, limit)
 	if err != nil {
 		HandleAppErrors(err, h.logger, c)
 	}
@@ -66,17 +64,11 @@ func (h UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
-	requesterID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
-
-	role, ok := parseRoleFromContext(h.logger, c)
-	if !ok {
-		return
-	}
-
-	user, err := h.uc.GetUser(role, requesterID, userID)
+	user, err := h.uc.GetUser(actorID, userID)
 	if err != nil {
 		HandleAppErrors(err, h.logger, c)
 		return
@@ -109,11 +101,11 @@ func (h UserHandler) UpdateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
 		return
 	}
-	requesterID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
-	err = h.uc.UpdateUser(requesterID, userID, &req)
+	err = h.uc.UpdateUser(actorID, userID, &req)
 	if err != nil {
 		HandleAppErrors(err, h.logger, c)
 		return
@@ -138,11 +130,11 @@ func (h UserHandler) DeleteUser(c *gin.Context) {
 	if !ok {
 		return
 	}
-	requesterID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
-	err := h.uc.DeleteUser(requesterID, uuid)
+	err := h.uc.DeleteUser(actorID, uuid)
 	if err != nil {
 		HandleAppErrors(err, h.logger, c)
 		return
@@ -161,17 +153,11 @@ func (h UserHandler) DeleteUser(c *gin.Context) {
 // @Router /users/me [get]
 // @Security ApiKeyAuth
 func (h UserHandler) GetCurrentAuthentificatedUser(c *gin.Context) {
-	userID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
-
-	role, ok := parseRoleFromContext(h.logger, c)
-	if !ok {
-		return
-	}
-
-	userResp, err := h.uc.GetUser(role, userID, userID)
+	userResp, err := h.uc.GetUser(actorID, actorID)
 	if err != nil {
 		HandleAppErrors(err, h.logger, c)
 		return

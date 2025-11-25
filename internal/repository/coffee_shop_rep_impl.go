@@ -85,4 +85,3 @@ func (r *CoffeeShopRepImpl) IsWorker(userID uuid.UUID, shopID uuid.UUID) (bool, 
 
 	return count > 0, nil
 }
-

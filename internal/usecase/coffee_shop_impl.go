@@ -12,12 +12,20 @@ import (
 )
 
 type CoffeeShopUsecaseImpl struct {
-	rep    repository.CoffeeShopRep
-	logger *slog.Logger
+	rep         repository.CoffeeShopRep
+	workerCsRep repository.WorkerCoffeeShopRepository
+	logger      *slog.Logger
 }
 
-func NewCoffeeShopUsecase(rep repository.CoffeeShopRep, logger *slog.Logger) CoffeeShopUsecase {
-	return &CoffeeShopUsecaseImpl{rep: rep, logger: logger}
+func NewCoffeeShopUsecase(rep repository.CoffeeShopRep,
+	workerCsRep repository.WorkerCoffeeShopRepository,
+	logger *slog.Logger,
+) CoffeeShopUsecase {
+	return &CoffeeShopUsecaseImpl{
+		rep:         rep,
+		workerCsRep: workerCsRep,
+		logger:      logger,
+	}
 }
 
 func (u *CoffeeShopUsecaseImpl) CreateCoffeeShop(userID uuid.UUID, req *dto.CreateCoffeeShopRequest) (*dto.CoffeeShopResponse, error) {
@@ -31,7 +39,13 @@ func (u *CoffeeShopUsecaseImpl) CreateCoffeeShop(userID uuid.UUID, req *dto.Crea
 		logger.Error("failed to create coffee shop", "error", err.Error())
 		return nil, err
 	}
-
+	_, err = u.workerCsRep.Create(&models.WorkerCoffeeShop{
+		CoffeeShopID: &createdShop.CreatorID,
+		WorkerID:     &userID,
+	})
+	if err != nil {
+		return nil, err
+	}
 	logger.Info("coffee shop created successfully", "shopID", createdShop.ID.String())
 	return toCoffeeShopResponse(createdShop), nil
 }

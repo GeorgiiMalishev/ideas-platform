@@ -58,13 +58,14 @@ func main() {
 		logger.Error("Failed to auto-migrate database:", slog.String("error", err.Error()))
 		return
 	}
+	workerCsRepo := repository.NewWorkerCoffeeShopRepository(db)
 
 	userRepo := repository.NewUserRepository(db)
-	userUsecase := usecase.NewUserUsecase(userRepo, logger)
+	userUsecase := usecase.NewUserUsecase(userRepo, workerCsRepo, logger)
 	userHandler := handlers.NewUserHandler(userUsecase, logger)
 
 	coffeeShopRepo := repository.NewCoffeeShopRepository(db)
-	csUscase := usecase.NewCoffeeShopUsecase(coffeeShopRepo, logger)
+	csUscase := usecase.NewCoffeeShopUsecase(coffeeShopRepo, workerCsRepo, logger)
 	csHandler := handlers.NewCoffeeShopHandler(csUscase, logger)
 
 	authRepo := repository.NewAuthRepository(db)

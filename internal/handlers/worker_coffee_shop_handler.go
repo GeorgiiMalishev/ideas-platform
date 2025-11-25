@@ -45,7 +45,7 @@ func (h *WorkerCoffeeShopHandler) AddWorker(c *gin.Context) {
 		return
 	}
 
-	actorID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
@@ -79,7 +79,7 @@ func (h *WorkerCoffeeShopHandler) RemoveWorker(c *gin.Context) {
 		return
 	}
 
-	actorID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
@@ -115,7 +115,7 @@ func (h *WorkerCoffeeShopHandler) ListWorkersInShop(c *gin.Context) {
 		return
 	}
 
-	actorID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
@@ -157,7 +157,7 @@ func (h *WorkerCoffeeShopHandler) ListCoffeeShopsForWorker(c *gin.Context) {
 		return
 	}
 
-	actorID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}

@@ -44,7 +44,7 @@ func (h *RewardHandler) GiveReward(c *gin.Context) {
 		return
 	}
 
-	actorID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
@@ -78,7 +78,7 @@ func (h *RewardHandler) RevokeReward(c *gin.Context) {
 		return
 	}
 
-	actorID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
@@ -137,7 +137,7 @@ func (h *RewardHandler) GetRewardsForCoffeeShop(c *gin.Context) {
 		return
 	}
 
-	actorID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
@@ -166,7 +166,7 @@ func (h *RewardHandler) GetRewardsForCoffeeShop(c *gin.Context) {
 // @Router /users/me/rewards [get]
 // @Security ApiKeyAuth
 func (h *RewardHandler) GetMyRewards(c *gin.Context) {
-	userID, ok := parseUserIDFromContext(h.logger, c)
+	userID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}

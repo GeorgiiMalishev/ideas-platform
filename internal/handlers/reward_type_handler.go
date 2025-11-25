@@ -63,15 +63,11 @@ func (h *RewardTypeHandler) CreateRewardType(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, &dto.ErrorResponse{Message: "bad request"})
 		return
 	}
-	creatorID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
-	creatorRole, ok := parseRoleFromContext(h.logger, c)
-	if !ok {
-		return
-	}
-	resp, err := h.uc.CreateRewardType(creatorID, creatorRole, &req)
+	resp, err := h.uc.CreateRewardType(actorID, &req)
 	if err != nil {
 		HandleAppErrors(err, h.logger, c)
 		return
@@ -91,15 +87,11 @@ func (h *RewardTypeHandler) UpdateRewardType(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, &dto.ErrorResponse{Message: "bad request"})
 		return
 	}
-	updaterID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
-	updaterRole, ok := parseRoleFromContext(h.logger, c)
-	if !ok {
-		return
-	}
-	err = h.uc.UpdateRewardType(updaterID, updaterRole, rewardTypeID, &req)
+	err = h.uc.UpdateRewardType(actorID, rewardTypeID, &req)
 	if err != nil {
 		HandleAppErrors(err, h.logger, c)
 		return
@@ -112,15 +104,11 @@ func (h *RewardTypeHandler) DeleteRewardType(c *gin.Context) {
 	if !ok {
 		return
 	}
-	deleterID, ok := parseUserIDFromContext(h.logger, c)
+	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
-	deleterRole, ok := parseRoleFromContext(h.logger, c)
-	if !ok {
-		return
-	}
-	err := h.uc.DeleteRewardType(deleterID, deleterRole, rewardTypeID)
+	err := h.uc.DeleteRewardType(actorID, rewardTypeID)
 	if err != nil {
 		HandleAppErrors(err, h.logger, c)
 		return

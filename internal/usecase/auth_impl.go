@@ -237,23 +237,15 @@ func (a *AuthUsecaseImpl) createUser(req *dto.VerifyOTPRequest) (*models.User, e
 		return nil, apperrors.NewErrNotValid("phone can't be empty")
 	}
 
-	role, err := a.rep.GetRoleByName("user")
-	if err != nil {
-		logger.Error("failed get role", "error", err.Error())
-		return nil, err
-	}
-
 	user := &models.User{
-		Phone:  req.Phone,
-		Name:   req.Name,
-		RoleID: role.ID,
+		Phone: req.Phone,
+		Name:  req.Name,
 	}
 	savedUser, err := a.rep.CreateUser(user)
 	if err != nil {
 		logger.Error("failed create user", "error", err.Error())
 		return nil, err
 	}
-	savedUser.Role = role
 
 	logger.Info("user created successfully")
 	return savedUser, nil
@@ -416,7 +408,6 @@ func hashToken(token string) string {
 func (a *AuthUsecaseImpl) createJWTToken(user *models.User) (*string, error) {
 	JWTClaims := dto.JWTClaims{
 		UserID: user.ID,
-		Role:   user.Role.Name,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(a.authCfg.JWTConfig.JWTTokenTimer)),

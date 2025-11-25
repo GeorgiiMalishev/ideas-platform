@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -50,12 +51,14 @@ func (u *WorkerCoffeeShopUsecaseImpl) AddWorker(actorID uuid.UUID, req *dto.AddW
 		return nil, apperrors.NewErrNotFound("user", req.WorkerID.String())
 	}
 
-	isAlreadyWorker, err := u.workerShopRepo.IsWorkerInShop(req.WorkerID, req.CoffeeShopID)
+	_, err = u.workerShopRepo.GetByUserIDAndShopID(req.WorkerID, req.CoffeeShopID)
 	if err != nil {
-		logger.Error("failed to check if user is already a worker", "error", err)
-		return nil, err
-	}
-	if isAlreadyWorker {
+		var errNotFound *apperrors.ErrNotFound
+		if !errors.As(err, &errNotFound) {
+			logger.Error("failed to check if user is already a worker", "error", err)
+			return nil, err
+		}
+	} else {
 		logger.Info("user is already a worker in this shop")
 		return nil, apperrors.NewErrConflict(fmt.Sprintf("user %s is already a worker in shop %s", req.WorkerID, req.CoffeeShopID))
 	}
@@ -153,31 +156,17 @@ func (u *WorkerCoffeeShopUsecaseImpl) ListShopsForWorker(actorID, workerID uuid.
 func (u *WorkerCoffeeShopUsecaseImpl) checkShopAdminAccess(actorID, shopID uuid.UUID) error {
 	logger := u.logger.With("method", "checkShopAdminAccess", "actorID", actorID, "shopID", shopID)
 
-	shop, err := u.coffeeShopRepo.GetCoffeeShop(shopID)
+	worker, err := u.workerShopRepo.GetByUserIDAndShopID(actorID, shopID)
 	if err != nil {
-		return err // Error is already classified by the repository
+		var errNotFound *apperrors.ErrNotFound
+		if errors.As(err, &errNotFound) {
+			return apperrors.NewErrAccessDenied("user is not worker for this coffee shop")
+		}
+		return err
 	}
-
-	if shop.CreatorID == actorID {
-		logger.Debug("access granted: user is coffee shop creator")
+	if worker.Role.Name == "admin" {
+		logger.Debug("access granted: user is a worker with admin role")
 		return nil
-	}
-
-	actor, err := u.userRepo.GetUser(actorID)
-	if err != nil {
-		return err // Error is already classified by the repository
-	}
-
-	if actor.Role.Name == "admin" {
-		isWorker, err := u.workerShopRepo.IsWorkerInShop(actorID, shopID)
-		if err != nil {
-			logger.Error("failed to check if actor is worker", "error", err)
-			return err
-		}
-		if isWorker {
-			logger.Debug("access granted: user is a worker with admin role")
-			return nil
-		}
 	}
 
 	logger.Warn("access denied: user is not shop creator or admin worker")
