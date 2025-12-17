@@ -34,7 +34,7 @@ func NewRewardHandler(uc usecase.RewardUsecase, logger *slog.Logger) *RewardHand
 // @Failure 403 {object} dto.ErrorResponse "Forbidden"
 // @Failure 404 {object} dto.ErrorResponse "Not Found"
 // @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
-// @Router /rewards [post]
+// @Router /admin/rewards [post]
 // @Security ApiKeyAuth
 func (h *RewardHandler) GiveReward(c *gin.Context) {
 	var req dto.GiveRewardRequest
@@ -70,7 +70,7 @@ func (h *RewardHandler) GiveReward(c *gin.Context) {
 // @Failure 403 {object} dto.ErrorResponse "Forbidden"
 // @Failure 404 {object} dto.ErrorResponse "Not Found"
 // @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
-// @Router /rewards/{id} [delete]
+// @Router /admin/rewards/{id} [delete]
 // @Security ApiKeyAuth
 func (h *RewardHandler) RevokeReward(c *gin.Context) {
 	rewardID, ok := parseUUID(h.logger, c)

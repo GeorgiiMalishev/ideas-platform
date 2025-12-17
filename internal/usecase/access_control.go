@@ -10,6 +10,10 @@ import (
 	"github.com/google/uuid"
 )
 
+type AccessControlUsecase interface {
+	CanManageCoffeeShop(ctx context.Context, userID, coffeeShopID uuid.UUID) error
+}
+
 // CheckShopAdminAccess verifies if a user is a worker in the shop with the 'admin' role.
 func CheckShopAdminAccess(ctx context.Context, logger *slog.Logger, workerShopRepo repository.WorkerCoffeeShopRepository, actorID, shopID uuid.UUID) error {
 	l := logger.With("method", "CheckShopAdminAccess", "actorID", actorID, "shopID", shopID)

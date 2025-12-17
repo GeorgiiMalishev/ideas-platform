@@ -58,14 +58,14 @@ func (h *IdeaHandler) CreateIdea(c *gin.Context) {
 // @Description Get a list of all ideas for a given coffee shop with optional pagination
 // @Tags ideas
 // @Produce json
-// @Param shop_id path string true "Coffee Shop ID"
+// @Param id path string true "Coffee Shop ID"
 // @Param page query int false "Page number"
 // @Param limit query int false "Number of items per page"
 // @Param sort query string false "Sort order"
 // @Success 200 {array} dto.IdeaResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
-// @Router /coffee-shops/{shop_id}/ideas [get]
+// @Router /coffee-shops/{id}/ideas [get]
 func (h *IdeaHandler) GetIdeasFromShop(c *gin.Context) {
 	shopID, ok := parseUUID(h.logger, c)
 	if !ok {

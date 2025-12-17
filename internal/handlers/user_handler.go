@@ -31,6 +31,7 @@ func NewUserHandler(uc usecase.UserUsecase, logger *slog.Logger) *UserHandler {
 // @Success 200 {array} dto.UserResponse
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /users [get]
+// @Security ApiKeyAuth
 func (h UserHandler) GetAllUsers(c *gin.Context) {
 	actorID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
@@ -58,6 +59,7 @@ func (h UserHandler) GetAllUsers(c *gin.Context) {
 // @Failure 404 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /users/{id} [get]
+// @Security ApiKeyAuth
 func (h UserHandler) GetUser(c *gin.Context) {
 	userID, ok := parseUUID(h.logger, c)
 	if !ok {

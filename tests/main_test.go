@@ -41,6 +41,7 @@ type BaseTestSuite struct {
 	RewardTypeRepo       repository.RewardTypeRepository
 	WorkerCoffeeShopRepo repository.WorkerCoffeeShopRepository
 	LikeRepo             repository.LikeRepository
+	CategoryRepo         repository.CategoryRepository
 	UserRoleID           uuid.UUID
 	AdminRoleID          uuid.UUID
 	Ctx                  context.Context
@@ -114,6 +115,7 @@ func (suite *BaseTestSuite) SetupSuite() {
 	suite.RewardTypeRepo = repository.NewRewardTypeRepository(suite.DB)
 	suite.WorkerCoffeeShopRepo = repository.NewWorkerCoffeeShopRepository(suite.DB)
 	suite.LikeRepo = repository.NewLikeRepository(suite.DB)
+	suite.CategoryRepo = repository.NewCategoryRepository(suite.DB)
 
 	// Usecases
 	authUsecase := usecase.NewAuthUsecase(suite.AuthRepo, "test-secret", &suite.cfg.AuthConfig, logger)
@@ -124,6 +126,8 @@ func (suite *BaseTestSuite) SetupSuite() {
 	rewardTypeUsecase := usecase.NewRewardTypeUsecase(suite.RewardTypeRepo, suite.CoffeeShopRepo, suite.WorkerCoffeeShopRepo, logger)
 	workerCoffeeShopUsecase := usecase.NewWorkerCoffeeShopUsecase(suite.WorkerCoffeeShopRepo, suite.CoffeeShopRepo, suite.UserRepo, logger)
 	likeUsecase := usecase.NewLikeUsecase(suite.LikeRepo, logger)
+	accessControlUsecase := usecase.NewAccessControlUsecase(suite.WorkerCoffeeShopRepo, logger)
+	categoryUsecase := usecase.NewCategoryUsecase(suite.CategoryRepo, accessControlUsecase)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authUsecase, logger)
@@ -134,9 +138,10 @@ func (suite *BaseTestSuite) SetupSuite() {
 	rewardTypeHandler := handlers.NewRewardTypeHandler(rewardTypeUsecase, logger)
 	workerCoffeeShopHandler := handlers.NewWorkerCoffeeShopHandler(workerCoffeeShopUsecase, logger)
 	likeHandler := handlers.NewLikeHandler(likeUsecase, logger)
+	categoryHandler := handlers.NewCategoryHandler(categoryUsecase, logger)
 
 	// Router
-	appRouter := router.NewRouter(suite.cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, suite.WorkerCoffeeShopRepo, authUsecase, logger)
+	appRouter := router.NewRouter(suite.cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, categoryHandler, suite.WorkerCoffeeShopRepo, authUsecase, logger)
 	suite.Router = appRouter.SetupRouter()
 }
 

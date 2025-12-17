@@ -98,7 +98,12 @@ func main() {
 	workerCoffeeShopUsecase := usecase.NewWorkerCoffeeShopUsecase(workerCsRepo, coffeeShopRepo, userRepo, logger)
 	workerCoffeeShopHandler := handlers.NewWorkerCoffeeShopHandler(workerCoffeeShopUsecase, logger)
 
-	ar := router.NewRouter(cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, workerCsRepo, authUsecase, logger)
+	accessControlUsecase := usecase.NewAccessControlUsecase(workerCsRepo, logger)
+	categoryRepo := repository.NewCategoryRepository(db)
+	categoryUsecase := usecase.NewCategoryUsecase(categoryRepo, accessControlUsecase)
+	categoryHandler := handlers.NewCategoryHandler(categoryUsecase, logger)
+
+	ar := router.NewRouter(cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, categoryHandler, workerCsRepo, authUsecase, logger)
 	r := ar.SetupRouter()
 	err = r.Run(":8080")
 	if err != nil {

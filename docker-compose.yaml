@@ -1,6 +1,16 @@
 version: '3.8'
 
 services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+
   postgres:
     container_name: ideas_db_postgres
     image: postgres:18
@@ -13,6 +23,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d ideas_db"]
       interval: 10s
@@ -40,5 +51,4 @@ services:
 volumes:
   postgres_data:
   postgres_test_data:
-
 

@@ -21,6 +21,17 @@ func NewLikeHandler(u usecase.LikeUsecase, l *slog.Logger) *LikeHandler {
 	}
 }
 
+// @Summary Like an idea
+// @Description Like an idea by its ID
+// @Tags likes
+// @Produce json
+// @Param id path string true "Idea ID"
+// @Success 201 "Created"
+// @Failure 400 {object} dto.ErrorResponse "Bad Request"
+// @Failure 401 {object} dto.ErrorResponse "Unauthorized"
+// @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
+// @Router /ideas/{id}/like [post]
+// @Security ApiKeyAuth
 func (h *LikeHandler) LikeIdea(c *gin.Context) {
 	userID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
@@ -43,6 +54,17 @@ func (h *LikeHandler) LikeIdea(c *gin.Context) {
 	c.Status(http.StatusCreated)
 }
 
+// @Summary Unlike an idea
+// @Description Unlike an idea by its ID
+// @Tags likes
+// @Produce json
+// @Param id path string true "Idea ID"
+// @Success 204 "No Content"
+// @Failure 400 {object} dto.ErrorResponse "Bad Request"
+// @Failure 401 {object} dto.ErrorResponse "Unauthorized"
+// @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
+// @Router /ideas/{id}/unlike [delete]
+// @Security ApiKeyAuth
 func (h *LikeHandler) UnlikeIdea(c *gin.Context) {
 	userID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {

@@ -35,7 +35,7 @@ func NewWorkerCoffeeShopHandler(uc usecase.WorkerCoffeeShopUsecase, logger *slog
 // @Failure 404 {object} dto.ErrorResponse "Not Found"
 // @Failure 409 {object} dto.ErrorResponse "Conflict"
 // @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
-// @Router /worker-coffee-shops [post]
+// @Router /admin/worker-coffee-shops [post]
 // @Security ApiKeyAuth
 func (h *WorkerCoffeeShopHandler) AddWorker(c *gin.Context) {
 	var req dto.AddWorkerToShopRequest
@@ -71,7 +71,7 @@ func (h *WorkerCoffeeShopHandler) AddWorker(c *gin.Context) {
 // @Failure 403 {object} dto.ErrorResponse "Forbidden"
 // @Failure 404 {object} dto.ErrorResponse "Not Found"
 // @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
-// @Router /worker-coffee-shops/{id} [delete]
+// @Router /admin/worker-coffee-shops/{id} [delete]
 // @Security ApiKeyAuth
 func (h *WorkerCoffeeShopHandler) RemoveWorker(c *gin.Context) {
 	workerShopRelationID, ok := parseUUID(h.logger, c)

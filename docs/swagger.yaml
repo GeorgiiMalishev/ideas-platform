@@ -1,10 +1,31 @@
 basePath: /api/v1
 definitions:
+  dto.AddWorkerToShopRequest:
+    properties:
+      coffee_shop_id:
+        type: string
+      worker_id:
+        type: string
+    required:
+    - coffee_shop_id
+    - worker_id
+    type: object
   dto.AuthResponse:
     properties:
       access_token:
         type: string
       refresh_token:
+        type: string
+    type: object
+  dto.CategoryResponse:
+    properties:
+      coffee_shop_id:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      title:
         type: string
     type: object
   dto.CoffeeShopResponse:
@@ -21,6 +42,17 @@ definitions:
         type: string
       welcome_message:
         type: string
+    type: object
+  dto.CreateCategory:
+    properties:
+      description:
+        type: string
+      title:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - title
     type: object
   dto.CreateCoffeeShopRequest:
     properties:
@@ -48,10 +80,27 @@ definitions:
       title:
         type: string
     type: object
+  dto.CreateRewardTypeRequest:
+    properties:
+      coffeeShopID:
+        type: string
+      description:
+        type: string
+    type: object
   dto.ErrorResponse:
     properties:
       error:
         type: string
+    type: object
+  dto.GiveRewardRequest:
+    properties:
+      idea_id:
+        type: string
+      reward_type_id:
+        type: string
+    required:
+    - idea_id
+    - reward_type_id
     type: object
   dto.IdeaResponse:
     properties:
@@ -67,6 +116,8 @@ definitions:
         type: string
       image_url:
         type: string
+      likes:
+        type: integer
       status_id:
         type: string
       title:
@@ -85,6 +136,45 @@ definitions:
         type: string
     required:
     - refresh_token
+    type: object
+  dto.RewardResponse:
+    properties:
+      coffee_shop_id:
+        type: string
+      created_at:
+        type: string
+      given_at:
+        type: string
+      id:
+        type: string
+      idea_id:
+        type: string
+      is_activated:
+        type: boolean
+      receiver_id:
+        type: string
+      reward_type_id:
+        type: string
+    type: object
+  dto.RewardTypeResponse:
+    properties:
+      coffeeShopID:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+    type: object
+  dto.UpdateCategory:
+    properties:
+      description:
+        type: string
+      title:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - title
     type: object
   dto.UpdateCoffeeShopRequest:
     properties:
@@ -112,6 +202,11 @@ definitions:
       title:
         type: string
     type: object
+  dto.UpdateRewardTypeRequest:
+    properties:
+      description:
+        type: string
+    type: object
   dto.UpdateUserRequest:
     properties:
       name:
@@ -135,6 +230,15 @@ definitions:
       phone:
         type: string
     type: object
+  dto.WorkerCoffeeShopResponse:
+    properties:
+      coffee_shop:
+        $ref: '#/definitions/dto.CoffeeShopResponse'
+      id:
+        type: string
+      worker:
+        $ref: '#/definitions/dto.UserResponse'
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -143,6 +247,335 @@ info:
   title: Swagger Example API
   version: "1.0"
 paths:
+  /admin/coffee-shops/{id}/workers:
+    get:
+      description: Retrieves a paginated list of users working in a specific coffee
+        shop. Requires admin access to the coffee shop.
+      parameters:
+      - description: Coffee Shop ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 0
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 25
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.UserResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: List workers in a coffee shop
+      tags:
+      - worker-coffee-shops
+  /admin/rewards:
+    post:
+      consumes:
+      - application/json
+      description: Creates a reward for the author of a specific idea. The caller
+        must be the owner of the coffee shop.
+      parameters:
+      - description: Information about the reward to be given
+        in: body
+        name: reward_info
+        required: true
+        schema:
+          $ref: '#/definitions/dto.GiveRewardRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.RewardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Give a reward
+      tags:
+      - rewards
+  /admin/rewards/{id}:
+    delete:
+      description: Deletes a reward by its ID. The caller must be the owner of the
+        coffee shop.
+      parameters:
+      - description: Reward ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Revoke a reward
+      tags:
+      - rewards
+  /admin/rewards/type:
+    post:
+      consumes:
+      - application/json
+      description: Create a new reward type
+      parameters:
+      - description: Reward type information
+        in: body
+        name: reward_type
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRewardTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.RewardTypeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new reward type
+      tags:
+      - rewards
+  /admin/rewards/type/{id}:
+    delete:
+      description: Delete a reward type by ID
+      parameters:
+      - description: Reward Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete reward type by ID
+      tags:
+      - rewards
+    put:
+      consumes:
+      - application/json
+      description: Update reward type details for the given ID
+      parameters:
+      - description: Reward Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Reward type update information
+        in: body
+        name: reward_type
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateRewardTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update reward type by ID
+      tags:
+      - rewards
+  /admin/worker-coffee-shops:
+    post:
+      consumes:
+      - application/json
+      description: Adds a user as a worker to a specific coffee shop. Requires creator
+        or admin access to the coffee shop.
+      parameters:
+      - description: Worker and Coffee Shop IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddWorkerToShopRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.WorkerCoffeeShopResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Add a worker to a coffee shop
+      tags:
+      - worker-coffee-shops
+  /admin/worker-coffee-shops/{id}:
+    delete:
+      description: Removes a worker-coffee shop relationship by its ID. Requires creator
+        or admin access to the coffee shop.
+      parameters:
+      - description: Worker Coffee Shop Relationship ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Remove a worker from a coffee shop
+      tags:
+      - worker-coffee-shops
   /auth:
     post:
       consumes:
@@ -394,13 +827,198 @@ paths:
       summary: Update coffee shop by ID
       tags:
       - coffee-shops
-  /coffee-shops/{shop_id}/ideas:
+  /coffee-shops/{id}/categories:
+    get:
+      description: Get a list of all categories for a given coffee shop with optional
+        pagination
+      parameters:
+      - description: Coffee Shop ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Number of items per page
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get categories by coffee shop
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: Create a new category for a coffee shop
+      parameters:
+      - description: Coffee Shop ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Category information
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCategory'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new category
+      tags:
+      - categories
+  /coffee-shops/{id}/categories/{category_id}:
+    delete:
+      description: Delete a category by ID
+      parameters:
+      - description: Coffee Shop ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Category ID
+        in: path
+        name: category_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a category
+      tags:
+      - categories
+    get:
+      description: Get category details by ID
+      parameters:
+      - description: Coffee Shop ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Category ID
+        in: path
+        name: category_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CategoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get category by ID
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      description: Update category details for the given ID
+      parameters:
+      - description: Coffee Shop ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Category ID
+        in: path
+        name: category_id
+        required: true
+        type: string
+      - description: Category update information
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCategory'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update a category
+      tags:
+      - categories
+  /coffee-shops/{id}/ideas:
     get:
       description: Get a list of all ideas for a given coffee shop with optional pagination
       parameters:
       - description: Coffee Shop ID
         in: path
-        name: shop_id
+        name: id
         required: true
         type: string
       - description: Page number
@@ -435,6 +1053,92 @@ paths:
       summary: Get all ideas by shop
       tags:
       - ideas
+  /coffee-shops/{id}/rewards:
+    get:
+      description: Retrieves a paginated list of rewards associated with a specific
+        coffee shop. The caller must be the owner.
+      parameters:
+      - description: Coffee Shop ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 0
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 25
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.RewardResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get rewards for a coffee shop
+      tags:
+      - rewards
+  /coffee-shops/{id}/rewards/type:
+    get:
+      description: Get a list of all reward types for a given coffee shop with optional
+        pagination
+      parameters:
+      - description: Coffee Shop ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.RewardTypeResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get reward types by coffee shop
+      tags:
+      - rewards
   /health:
     get:
       description: Check the health of the service
@@ -581,6 +1285,68 @@ paths:
       summary: Update idea by ID
       tags:
       - ideas
+  /ideas/{id}/like:
+    post:
+      description: Like an idea by its ID
+      parameters:
+      - description: Idea ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Like an idea
+      tags:
+      - likes
+  /ideas/{id}/unlike:
+    delete:
+      description: Unlike an idea by its ID
+      parameters:
+      - description: Idea ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Unlike an idea
+      tags:
+      - likes
   /logout:
     post:
       consumes:
@@ -636,6 +1402,70 @@ paths:
       summary: Logout Everywhere
       tags:
       - auth
+  /rewards/{id}:
+    get:
+      description: Retrieves details of a single reward by its ID.
+      parameters:
+      - description: Reward ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RewardResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get a reward
+      tags:
+      - rewards
+  /rewards/type/{id}:
+    get:
+      description: Get reward type details by ID
+      parameters:
+      - description: Reward Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.RewardTypeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get reward type by ID
+      tags:
+      - rewards
   /users:
     get:
       description: Get a list of all users with optional pagination
@@ -661,6 +1491,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Get all users
       tags:
       - users
@@ -722,6 +1554,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
       summary: Get user by ID
       tags:
       - users
@@ -763,6 +1597,60 @@ paths:
       summary: Update user by ID
       tags:
       - users
+  /users/{id}/coffee-shops:
+    get:
+      description: Retrieves a paginated list of coffee shops a specific user works
+        for. A user can only view their own list.
+      parameters:
+      - description: Worker User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 0
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 25
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.CoffeeShopResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: List coffee shops for a worker
+      tags:
+      - worker-coffee-shops
   /users/me:
     get:
       description: Get details of the currently authenticated user
@@ -824,6 +1712,43 @@ paths:
       summary: Get all ideas by user
       tags:
       - ideas
+  /users/me/rewards:
+    get:
+      description: Retrieves a paginated list of rewards the currently authenticated
+        user has received.
+      parameters:
+      - default: 0
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 25
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.RewardResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get my rewards
+      tags:
+      - rewards
 securityDefinitions:
   ApiKeyAuth:
     in: header

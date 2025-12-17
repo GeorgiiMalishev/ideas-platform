@@ -60,6 +60,18 @@ func parseUUID(logger *slog.Logger, c *gin.Context) (uuid.UUID, bool) {
 	return id, true
 }
 
+func parseUUIDFromParam(logger *slog.Logger, c *gin.Context, paramName string) (uuid.UUID, bool) {
+	uuidRaw := c.Param(paramName)
+	id, err := uuid.Parse(uuidRaw)
+	if err != nil {
+		logger.Error("invalid uuid: ", slog.String("error", err.Error()), slog.String("param", paramName))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + paramName})
+		return uuid.Nil, false
+	}
+
+	return id, true
+}
+
 func parseActorIDFromContext(logger *slog.Logger, c *gin.Context) (uuid.UUID, bool) {
 	actorIDAny, exist := c.Get("user_id")
 	if !exist {
