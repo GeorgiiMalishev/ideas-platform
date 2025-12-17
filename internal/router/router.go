@@ -78,6 +78,8 @@ func (ar AppRouter) SetupRouter() *gin.Engine {
 		// auth
 		v1.GET("/auth/:phone", ar.authHandler.GetOTP)
 		v1.POST("/auth", ar.authHandler.VerifyOTP)
+		v1.POST("/auth/register/admin", ar.authHandler.RegisterAdminAndCoffeeShop)
+		v1.POST("/auth/login/admin", ar.authHandler.LoginAdmin)
 		v1.POST("/auth/refresh", ar.authHandler.Refresh)
 
 		// ideas

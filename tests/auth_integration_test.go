@@ -143,8 +143,8 @@ func (suite *AuthIntegrationTestSuite) TestVerifyOTP() {
 			// Если нужен существующий пользователь
 			if tt.existingUser {
 				user := &models.User{
-					Name:  tt.userName,
-					Phone: tt.phone,
+					Name:  &tt.userName,
+					Phone: &tt.phone,
 				}
 				_, err := suite.AuthRepo.CreateUser(context.Background(), user)
 				suite.NoError(err)
@@ -196,7 +196,7 @@ func (suite *AuthIntegrationTestSuite) TestVerifyOTP() {
 				err = suite.DB.First(&user, "phone = ?", tt.phone).Error
 				suite.NoError(err)
 				if !tt.existingUser {
-					suite.Equal(tt.userName, user.Name)
+					suite.Equal(tt.userName, *user.Name)
 				}
 
 				// Проверяем, что OTP удален после успешной верификации
@@ -422,8 +422,8 @@ func (suite *AuthIntegrationTestSuite) TestRefresh() {
 			hashedCode, _ := bcrypt.GenerateFromPassword([]byte(tt.otpCode), bcrypt.DefaultCost)
 
 			user := &models.User{
-				Name:  tt.userName,
-				Phone: tt.phone,
+				Name:  &tt.userName,
+				Phone: &tt.phone,
 			}
 			_, err := suite.AuthRepo.CreateUser(context.Background(), user)
 			suite.NoError(err)

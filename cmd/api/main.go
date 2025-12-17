@@ -76,7 +76,7 @@ func main() {
 	csHandler := handlers.NewCoffeeShopHandler(csUscase, logger)
 
 	authRepo := repository.NewAuthRepository(db)
-	authUsecase := usecase.NewAuthUsecase(authRepo, "1234567890", &cfg.AuthConfig, logger)
+	authUsecase := usecase.NewAuthUsecase(authRepo, coffeeShopRepo, workerCsRepo, db, "1234567890", &cfg.AuthConfig, logger)
 	authHandler := handlers.NewAuthHandler(authUsecase, logger)
 
 	ideaRepo := repository.NewIdeaRepository(db)

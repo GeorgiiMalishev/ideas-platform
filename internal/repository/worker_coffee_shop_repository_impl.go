@@ -30,6 +30,16 @@ func (r *WorkerCoffeeShopRepositoryImpl) Create(ctx context.Context, workerShop 
 	return workerShop, nil
 }
 
+func (r *WorkerCoffeeShopRepositoryImpl) CreateWithTx(ctx context.Context, workerShop *models.WorkerCoffeeShop, tx *gorm.DB) (*models.WorkerCoffeeShop, error) {
+	if err := tx.WithContext(ctx).Create(workerShop).Error; err != nil {
+		return nil, err
+	}
+	if err := tx.WithContext(ctx).Preload("Worker").Preload("CoffeeShop").First(workerShop).Error; err != nil {
+		return nil, err
+	}
+	return workerShop, nil
+}
+
 // GetByID retrieves a worker-coffeeshop relationship by its ID
 func (r *WorkerCoffeeShopRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*models.WorkerCoffeeShop, error) {
 	var workerShop models.WorkerCoffeeShop

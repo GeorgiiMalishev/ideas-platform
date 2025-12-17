@@ -26,10 +26,12 @@ func (suite *CategoryIntegrationTestSuite) TestCategoryCRUD() {
 	t := suite.T()
 
 	// Create admin and coffee shop
+	adminName := "Test Admin"
+	adminPhone := "1111111111"
 	admin := models.User{
 		ID:    uuid.New(),
-		Name:  "Test Admin",
-		Phone: "1111111111",
+		Name:  &adminName,
+		Phone: &adminPhone,
 	}
 	err := suite.DB.Create(&admin).Error
 	suite.Require().NoError(err)

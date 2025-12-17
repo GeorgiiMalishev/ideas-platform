@@ -38,9 +38,11 @@ func (suite *RewardTypeIntegrationTestSuite) TestCreateRewardType() {
 			expectedStatus: http.StatusCreated,
 			needCheckResp:  true,
 			setup: func() (string, dto.CreateRewardTypeRequest) {
+				adminName := "admin name"
+				adminPhone := "7777"
 				admin := models.User{
-					Name:  "admin name",
-					Phone: "7777",
+					Name:  &adminName,
+					Phone: &adminPhone,
 				}
 				token := suite.RegisterUserAndGetToken(&admin)
 				shop, err := suite.CoffeeShopRepo.CreateCoffeeShop(suite.Ctx, &models.CoffeeShop{
@@ -69,9 +71,11 @@ func (suite *RewardTypeIntegrationTestSuite) TestCreateRewardType() {
 			expectedStatus: http.StatusForbidden,
 			needCheckResp:  false,
 			setup: func() (string, dto.CreateRewardTypeRequest) {
+				userName := "not admin name"
+				userPhone := "1241151"
 				user := models.User{
-					Name:  "not admin name",
-					Phone: "1241151",
+					Name:  &userName,
+					Phone: &userPhone,
 				}
 				token := suite.RegisterUserAndGetToken(&user)
 				shop, err := suite.CoffeeShopRepo.CreateCoffeeShop(suite.Ctx, &models.CoffeeShop{

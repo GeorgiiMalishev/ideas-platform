@@ -18,6 +18,11 @@ const docTemplate = `{
     "paths": {
         "/admin/coffee-shops/{id}/workers": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Retrieves a paginated list of users working in a specific coffee shop. Requires admin access to the coffee shop.",
                 "produces": [
                     "application/json"
@@ -89,16 +94,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/admin/rewards": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Creates a reward for the author of a specific idea. The caller must be the owner of the coffee shop.",
                 "consumes": [
                     "application/json"
@@ -158,16 +163,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/admin/rewards/type": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Create a new reward type",
                 "consumes": [
                     "application/json"
@@ -209,16 +214,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/admin/rewards/type/{id}": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Update reward type details for the given ID",
                 "consumes": [
                     "application/json"
@@ -270,14 +275,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a reward type by ID",
                 "produces": [
                     "application/json"
@@ -317,16 +322,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/admin/rewards/{id}": {
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Deletes a reward by its ID. The caller must be the owner of the coffee shop.",
                 "produces": [
                     "application/json"
@@ -378,16 +383,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/admin/worker-coffee-shops": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Adds a user as a worker to a specific coffee shop. Requires creator or admin access to the coffee shop.",
                 "consumes": [
                     "application/json"
@@ -453,16 +458,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/admin/worker-coffee-shops/{id}": {
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Removes a worker-coffee shop relationship by its ID. Requires creator or admin access to the coffee shop.",
                 "produces": [
                     "application/json"
@@ -514,12 +519,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/auth": {
@@ -543,6 +543,58 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/dto.VerifyOTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login/admin": {
+            "post": {
+                "description": "Login an admin user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login Admin",
+                "parameters": [
+                    {
+                        "description": "Admin login request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AdminLoginRequest"
                         }
                     }
                 ],
@@ -613,6 +665,58 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register/admin": {
+            "post": {
+                "description": "Register a new admin user and create a coffee shop associated with them",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register Admin and Coffee Shop",
+                "parameters": [
+                    {
+                        "description": "Admin registration and coffee shop creation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RegisterAdminRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict (e.g., login already exists)",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -707,6 +811,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Create a new coffee shop with the provided information",
                 "consumes": [
                     "application/json"
@@ -748,12 +857,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/coffee-shops/{id}": {
@@ -803,6 +907,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Update coffee shop details for the given ID",
                 "consumes": [
                     "application/json"
@@ -854,14 +963,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a coffee shop by ID",
                 "produces": [
                     "application/json"
@@ -901,12 +1010,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/coffee-shops/{id}/categories": {
@@ -957,6 +1061,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Create a new category for a coffee shop",
                 "consumes": [
                     "application/json"
@@ -1008,12 +1117,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/coffee-shops/{id}/categories/{category_id}": {
@@ -1070,6 +1174,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Update category details for the given ID",
                 "consumes": [
                     "application/json"
@@ -1128,14 +1237,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a category by ID",
                 "produces": [
                     "application/json"
@@ -1182,12 +1291,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/coffee-shops/{id}/ideas": {
@@ -1254,6 +1358,11 @@ const docTemplate = `{
         },
         "/coffee-shops/{id}/rewards": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Retrieves a paginated list of rewards associated with a specific coffee shop. The caller must be the owner.",
                 "produces": [
                     "application/json"
@@ -1319,16 +1428,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/coffee-shops/{id}/rewards/type": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get a list of all reward types for a given coffee shop with optional pagination",
                 "produces": [
                     "application/json"
@@ -1374,12 +1483,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/health": {
@@ -1407,6 +1511,11 @@ const docTemplate = `{
         },
         "/ideas": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Create a new idea for a coffee shop",
                 "consumes": [
                     "application/json"
@@ -1448,12 +1557,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/ideas/{id}": {
@@ -1503,6 +1607,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Update idea details for the given ID",
                 "consumes": [
                     "application/json"
@@ -1554,14 +1663,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete an idea by ID",
                 "produces": [
                     "application/json"
@@ -1601,16 +1710,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/ideas/{id}/like": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Like an idea by its ID",
                 "produces": [
                     "application/json"
@@ -1650,16 +1759,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/ideas/{id}/unlike": {
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Unlike an idea by its ID",
                 "produces": [
                     "application/json"
@@ -1699,16 +1808,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/logout": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Logout user by invalidating refresh token",
                 "consumes": [
                     "application/json"
@@ -1753,16 +1862,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/logout-everywhere": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Logout user from all devices by invalidating all refresh tokens",
                 "produces": [
                     "application/json"
@@ -1787,16 +1896,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/rewards/type/{id}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get reward type details by ID",
                 "produces": [
                     "application/json"
@@ -1839,12 +1948,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/rewards/{id}": {
@@ -1896,6 +2000,11 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get a list of all users with optional pagination",
                 "produces": [
                     "application/json"
@@ -1934,16 +2043,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/users/me": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get details of the currently authenticated user",
                 "produces": [
                     "application/json"
@@ -1971,16 +2080,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/users/me/ideas": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get a list of all ideas for a given user with optional pagination",
                 "produces": [
                     "application/json"
@@ -2031,16 +2140,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/users/me/rewards": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Retrieves a paginated list of rewards the currently authenticated user has received.",
                 "produces": [
                     "application/json"
@@ -2087,16 +2196,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/users/{id}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get user details by user ID",
                 "produces": [
                     "application/json"
@@ -2139,14 +2248,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
+                }
+            },
+            "put": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
-                ]
-            },
-            "put": {
+                ],
                 "description": "Update user details for the given user ID",
                 "consumes": [
                     "application/json"
@@ -2198,14 +2307,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
+                }
+            },
+            "delete": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
-                ]
-            },
-            "delete": {
+                ],
                 "description": "Delete a user by user ID",
                 "produces": [
                     "application/json"
@@ -2245,16 +2354,16 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         },
         "/users/{id}/coffee-shops": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Retrieves a paginated list of coffee shops a specific user works for. A user can only view their own list.",
                 "produces": [
                     "application/json"
@@ -2326,12 +2435,7 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ]
+                }
             }
         }
     },
@@ -2347,6 +2451,21 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "worker_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AdminLoginRequest": {
+            "type": "object",
+            "required": [
+                "login",
+                "password"
+            ],
+            "properties": {
+                "login": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }
@@ -2542,6 +2661,29 @@ const docTemplate = `{
             ],
             "properties": {
                 "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RegisterAdminRequest": {
+            "type": "object",
+            "required": [
+                "address",
+                "coffee_shop_name",
+                "login",
+                "password"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "coffee_shop_name": {
+                    "type": "string"
+                },
+                "login": {
+                    "type": "string"
+                },
+                "password": {
                     "type": "string"
                 }
             }

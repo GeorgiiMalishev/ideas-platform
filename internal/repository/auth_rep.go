@@ -5,6 +5,7 @@ import (
 
 	"github.com/GeorgiiMalishev/ideas-platform/internal/models"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type AuthRepository interface {
@@ -14,7 +15,11 @@ type AuthRepository interface {
 	DeleteOTP(ctx context.Context, phone string) error
 	GetUserByPhone(ctx context.Context, phone string) (*models.User, error)
 	CreateUser(ctx context.Context, user *models.User) (*models.User, error)
+	GetUserByLogin(ctx context.Context, login string) (*models.User, error)
 	GetRoleByName(ctx context.Context, name string) (*models.Role, error)
+
+	CreateUserWithTx(ctx context.Context, user *models.User, tx *gorm.DB) (*models.User, error)
+	GetRoleByNameWithTx(ctx context.Context, name string, tx *gorm.DB) (*models.Role, error)
 
 	// Refresh Token
 	CreateRefreshToken(ctx context.Context, token *models.UserRefreshToken) error

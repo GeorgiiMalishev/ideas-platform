@@ -69,6 +69,62 @@ func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 	c.JSON(http.StatusOK, authResp)
 }
 
+// @Summary Register Admin and Coffee Shop
+// @Description Register a new admin user and create a coffee shop associated with them
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body dto.RegisterAdminRequest true "Admin registration and coffee shop creation request"
+// @Success 200 {object} dto.AuthResponse
+// @Failure 400 {object} dto.ErrorResponse "Bad Request"
+// @Failure 409 {object} dto.ErrorResponse "Conflict (e.g., login already exists)"
+// @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
+// @Router /auth/register/admin [post]
+func (h *AuthHandler) RegisterAdminAndCoffeeShop(c *gin.Context) {
+	var req dto.RegisterAdminRequest
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Message: "bad request"})
+		return
+	}
+
+	authResp, err := h.uc.RegisterAdminAndCoffeeShop(c.Request.Context(), &req)
+	if err != nil {
+		HandleAppErrors(err, h.logger, c)
+		return
+	}
+
+	c.JSON(http.StatusOK, authResp)
+}
+
+// @Summary Login Admin
+// @Description Login an admin user
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body dto.AdminLoginRequest true "Admin login request"
+// @Success 200 {object} dto.AuthResponse
+// @Failure 400 {object} dto.ErrorResponse "Bad Request"
+// @Failure 401 {object} dto.ErrorResponse "Unauthorized"
+// @Failure 500 {object} dto.ErrorResponse "Internal Server Error"
+// @Router /auth/login/admin [post]
+func (h *AuthHandler) LoginAdmin(c *gin.Context) {
+	var req dto.AdminLoginRequest
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Message: "bad request"})
+		return
+	}
+
+	authResp, err := h.uc.LoginAdmin(c.Request.Context(), &req)
+	if err != nil {
+		HandleAppErrors(err, h.logger, c)
+		return
+	}
+
+	c.JSON(http.StatusOK, authResp)
+}
+
 // @Summary Refresh Access Token
 // @Description Refresh access token using a refresh token
 // @Tags auth

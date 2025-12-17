@@ -177,12 +177,20 @@ func (u *WorkerCoffeeShopUsecaseImpl) checkShopAdminAccess(ctx context.Context, 
 // --- DTO Mappers ---
 
 func toWorkerCoffeeShopResponse(r *models.WorkerCoffeeShop) *dto.WorkerCoffeeShopResponse {
+	var workerName string
+	if r.Worker.Name != nil {
+		workerName = *r.Worker.Name
+	}
+	var workerPhone string
+	if r.Worker.Phone != nil {
+		workerPhone = *r.Worker.Phone
+	}
 	return &dto.WorkerCoffeeShopResponse{
 		ID: r.ID,
 		Worker: dto.UserResponse{
 			ID:    r.Worker.ID,
-			Name:  r.Worker.Name,
-			Phone: r.Worker.Phone,
+			Name:  workerName,
+			Phone: workerPhone,
 		},
 		CoffeeShop: dto.CoffeeShopResponse{
 			ID:             r.CoffeeShop.ID,
@@ -198,10 +206,18 @@ func toWorkerCoffeeShopResponse(r *models.WorkerCoffeeShop) *dto.WorkerCoffeeSho
 func toUserResponsesFromRelations(relations []models.WorkerCoffeeShop) []dto.UserResponse {
 	users := make([]dto.UserResponse, len(relations))
 	for i, r := range relations {
+		var workerName string
+		if r.Worker.Name != nil {
+			workerName = *r.Worker.Name
+		}
+		var workerPhone string
+		if r.Worker.Phone != nil {
+			workerPhone = *r.Worker.Phone
+		}
 		users[i] = dto.UserResponse{
 			ID:    r.Worker.ID,
-			Name:  r.Worker.Name,
-			Phone: r.Worker.Phone,
+			Name:  workerName,
+			Phone: workerPhone,
 		}
 	}
 	return users

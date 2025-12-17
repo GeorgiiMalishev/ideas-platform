@@ -4,10 +4,12 @@ import (
 	"context"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/models"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type CoffeeShopRep interface {
 	CreateCoffeeShop(ctx context.Context, shop *models.CoffeeShop) (*models.CoffeeShop, error)
+	CreateCoffeeShopWithTx(ctx context.Context, shop *models.CoffeeShop, tx *gorm.DB) (*models.CoffeeShop, error)
 	UpdateCoffeeShop(ctx context.Context, shop *models.CoffeeShop) error
 	DeleteCoffeeShop(ctx context.Context, ID uuid.UUID) error
 	GetCoffeeShop(ctx context.Context, ID uuid.UUID) (*models.CoffeeShop, error)

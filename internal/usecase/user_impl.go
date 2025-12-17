@@ -126,7 +126,7 @@ func (u *UserUsecaseImpl) UpdateUser(ctx context.Context, requesterID, ID uuid.U
 	}
 
 	if req.Name != "" {
-		user.Name = req.Name
+		user.Name = &req.Name
 	}
 
 	err = u.rep.UpdateUser(ctx, user)
@@ -140,10 +140,18 @@ func (u *UserUsecaseImpl) UpdateUser(ctx context.Context, requesterID, ID uuid.U
 }
 
 func toResponse(user *models.User) *dto.UserResponse {
+	var name string
+	if user.Name != nil {
+		name = *user.Name
+	}
+	var phone string
+	if user.Phone != nil {
+		phone = *user.Phone
+	}
 	return &dto.UserResponse{
 		ID:    user.ID,
-		Name:  user.Name,
-		Phone: user.Phone,
+		Name:  name,
+		Phone: phone,
 	}
 }
 

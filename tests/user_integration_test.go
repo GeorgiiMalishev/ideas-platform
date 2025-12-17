@@ -33,7 +33,7 @@ func TestRouterTestSuite(t *testing.T) {
 
 func (suite *RouterTestSuite) TestGetAllUsers() {
 	    admin := suite.CreateUser("admin", "33333")
-		adminToken := suite.GetAuthToken(admin.Phone, "333", admin.Name)
+		adminToken := suite.GetAuthToken(*admin.Phone, "333", *admin.Name)
 		// Create a coffee shop and make the user an admin
 		coffeeShop := &models.CoffeeShop{Name: "Admin's Test Shop", CreatorID: admin.ID, Address: "123 Admin Lane"}
 		suite.DB.Create(coffeeShop)
@@ -90,13 +90,13 @@ func (suite *RouterTestSuite) TestGetAllUsers() {
 
 func (suite *RouterTestSuite) TestGetUser() {
 	targetUser := suite.CreateUser("target", "11111")
-	targetToken := suite.GetAuthToken(targetUser.Phone, "111", targetUser.Name)
+	targetToken := suite.GetAuthToken(*targetUser.Phone, "111", *targetUser.Name)
 
 	otherUser := suite.CreateUser("other", "22222")
-	otherToken := suite.GetAuthToken(otherUser.Phone, "222", otherUser.Name)
+	otherToken := suite.GetAuthToken(*otherUser.Phone, "222", *otherUser.Name)
 
 	admin := suite.CreateUser("admin", "33333")
-	adminToken := suite.GetAuthToken(admin.Phone, "333", admin.Name)
+	adminToken := suite.GetAuthToken(*admin.Phone, "333", *admin.Name)
 	// Create a coffee shop and make the user an admin
 	coffeeShop := &models.CoffeeShop{Name: "Admin's Test Shop", CreatorID: admin.ID, Address: "123 Admin Lane"}
 	suite.DB.Create(coffeeShop)
@@ -150,7 +150,7 @@ func (suite *RouterTestSuite) TestGetUser() {
 				err := json.Unmarshal(w.Body.Bytes(), &resp)
 				suite.NoError(err)
 				suite.Equal(targetUser.ID, resp.ID)
-				suite.Equal(targetUser.Name, resp.Name)
+				suite.Equal(*targetUser.Name, resp.Name)
 			}
 		})
 	}
@@ -158,10 +158,10 @@ func (suite *RouterTestSuite) TestGetUser() {
 
 func (suite *RouterTestSuite) TestUpdateUser() {
 	userToUpdate := suite.CreateUser("testuser", "12345")
-	userToken := suite.GetAuthToken(userToUpdate.Phone, "123456", userToUpdate.Name)
+	userToken := suite.GetAuthToken(*userToUpdate.Phone, "123456", *userToUpdate.Name)
 
 	otherUser := suite.CreateUser("otheruser", "54321")
-	otherToken := suite.GetAuthToken(otherUser.Phone, "123456", otherUser.Name)
+	otherToken := suite.GetAuthToken(*otherUser.Phone, "123456", *otherUser.Name)
 
 	updateReq := dto.UpdateUserRequest{Name: "updated-name"}
 
@@ -208,15 +208,15 @@ func (suite *RouterTestSuite) TestUpdateUser() {
 	// Verify the name was actually updated
 	var finalUser models.User
 	suite.DB.First(&finalUser, "id = ?", userToUpdate.ID)
-	suite.Equal("updated-name", finalUser.Name)
+	suite.Equal("updated-name", *finalUser.Name)
 }
 
 func (suite *RouterTestSuite) TestDeleteUser() {
 	userToDelete := suite.CreateUser("todelete", "111111")
-	userToken := suite.GetAuthToken(userToDelete.Phone, "111", userToDelete.Name)
+	userToken := suite.GetAuthToken(*userToDelete.Phone, "111", *userToDelete.Name)
 
 	otherUser := suite.CreateUser("other", "22222")
-	otherToken := suite.GetAuthToken(otherUser.Phone, "222", otherUser.Name)
+	otherToken := suite.GetAuthToken(*otherUser.Phone, "222", *otherUser.Name)
 
 	tests := []struct {
 		name           string

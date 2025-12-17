@@ -7,12 +7,14 @@ import (
 )
 
 type User struct {
-	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	Name      string    `gorm:"not null;size:100"`
-	Phone     string    `gorm:"not null;unique;size:15"`
-	IsDeleted bool      `gorm:"default:false"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime"`
-	CreatedAt time.Time `gorm:"autoCreateTime"`
+	ID           uuid.UUID `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	Name         *string   `gorm:"size:100"`
+	Login        *string   `gorm:"unique;size:50"`
+	PasswordHash *string
+	Phone        *string   `gorm:"unique;size:15"`
+	IsDeleted    bool      `gorm:"default:false"`
+	UpdatedAt    time.Time `gorm:"autoUpdateTime"`
+	CreatedAt    time.Time `gorm:"autoCreateTime"`
 }
 
 func (User) TableName() string {

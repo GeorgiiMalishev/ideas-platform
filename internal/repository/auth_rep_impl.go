@@ -101,6 +101,37 @@ func (r *authRepository) DeleteRefreshToken(ctx context.Context, token string) e
 	return nil
 }
 
+func (r *authRepository) GetUserByLogin(ctx context.Context, login string) (*models.User, error) {
+	var user models.User
+	err := r.db.WithContext(ctx).Where("login = ?", login).First(&user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, apperrors.NewErrNotFound("user", login)
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *authRepository) CreateUserWithTx(ctx context.Context, user *models.User, tx *gorm.DB) (*models.User, error) {
+	err := tx.WithContext(ctx).Create(user).Error
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (r *authRepository) GetRoleByNameWithTx(ctx context.Context, name string, tx *gorm.DB) (*models.Role, error) {
+	var role models.Role
+	if err := tx.WithContext(ctx).Where("name = ?", name).First(&role).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, apperrors.NewErrNotFound("role", name)
+		}
+		return nil, err
+	}
+	return &role, nil
+}
+
 // DeleteRefreshTokensByUserID deletes all refresh tokens for a specific user.
 func (r *authRepository) DeleteRefreshTokensByUserID(ctx context.Context, userID uuid.UUID) error {
 	result := r.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&models.UserRefreshToken{})

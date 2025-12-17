@@ -71,8 +71,8 @@ func (suite *BaseTestSuite) SetupSuite() {
 	suite.cfg.DB.User = "postgres"
 	suite.cfg.DB.Password = "postgres"
 
-	// Use a long JWT token timer for tests to avoid flakes
-	suite.cfg.AuthConfig.JWTConfig.JWTTokenTimer = time.Hour * 1
+	// Use a short JWT token timer for tests to satisfy the logout test
+	suite.cfg.AuthConfig.JWTConfig.JWTTokenTimer = 2 * time.Second
 
 	database, err := db.InitDB(suite.cfg)
 	if err != nil {
@@ -118,7 +118,7 @@ func (suite *BaseTestSuite) SetupSuite() {
 	suite.CategoryRepo = repository.NewCategoryRepository(suite.DB)
 
 	// Usecases
-	authUsecase := usecase.NewAuthUsecase(suite.AuthRepo, "test-secret", &suite.cfg.AuthConfig, logger)
+	authUsecase := usecase.NewAuthUsecase(suite.AuthRepo, suite.CoffeeShopRepo, suite.WorkerCoffeeShopRepo, suite.DB, "test-secret", &suite.cfg.AuthConfig, logger)
 	userUsecase := usecase.NewUserUsecase(suite.UserRepo, suite.WorkerCoffeeShopRepo, logger)
 	csUscase := usecase.NewCoffeeShopUsecase(suite.CoffeeShopRepo, suite.WorkerCoffeeShopRepo, suite.AdminRoleID, logger)
 	ideaUsecase := usecase.NewIdeaUsecase(suite.IdeaRepo, suite.WorkerCoffeeShopRepo, suite.LikeRepo, logger)
@@ -147,7 +147,7 @@ func (suite *BaseTestSuite) SetupSuite() {
 
 // TearDownSuite tears down the test suite
 func (suite *BaseTestSuite) TearDownSuite() {
-	suite.DB.Exec("DELETE FROM role")
+	suite.DB.Exec("DELETE FROM role") // Clean up roles at the end of the suite
 	sqlDB, err := suite.DB.DB()
 	if err != nil {
 		suite.T().Fatalf("failed to get db instance: %v", err)
@@ -206,7 +206,7 @@ func (suite *BaseTestSuite) GetAuthResponse(phone, otpCode, name string) dto.Aut
 	err := suite.DB.First(&user, "phone = ?", phone).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			createdUser, errCreate := suite.AuthRepo.CreateUser(suite.Ctx, &models.User{Name: name, Phone: phone})
+			createdUser, errCreate := suite.AuthRepo.CreateUser(suite.Ctx, &models.User{Name: &name, Phone: &phone, Login: nil})
 			suite.Require().NoError(errCreate)
 			user = *createdUser // Dereference to assign the value
 		}
@@ -274,17 +274,56 @@ func (suite *BaseTestSuite) RegisterUserAndGetToken(user *models.User) string {
 	}
 
 	// Use the existing GetAuthToken helper to complete the login flow.
-	return suite.GetAuthToken(user.Phone, otpCode, user.Name)
+	return suite.GetAuthToken(*user.Phone, otpCode, *user.Name)
 }
 
 // CreateUser is a helper to create a user
 func (suite *BaseTestSuite) CreateUser(name, phone string) *models.User {
 	user := &models.User{
 		ID:    uuid.New(),
-		Name:  name,
-		Phone: phone,
+		Name:  &name,
+		Phone: &phone,
 	}
 	err := suite.DB.Create(user).Error
 	suite.Require().NoError(err)
 	return user
+}
+
+// CreateWorkerForShop associates a user with a coffee shop with a given role.
+func (suite *BaseTestSuite) CreateWorkerForShop(user *models.User, shop *models.CoffeeShop, roleID uuid.UUID) *models.WorkerCoffeeShop {
+	workerRel := &models.WorkerCoffeeShop{
+		ID:           uuid.New(),
+		WorkerID:     &user.ID,
+		CoffeeShopID: &shop.ID,
+		RoleID:       &roleID,
+		IsDeleted:    false,
+		CreatedAt:    time.Now(),
+	}
+	err := suite.DB.Create(workerRel).Error
+	suite.Require().NoError(err)
+	return workerRel
+}
+
+// CreateTestUser creates a user, a coffee shop, and associates them as a worker with a specified role.
+// This is useful for tests requiring specific permissions.
+func (suite *BaseTestSuite) CreateTestUser(userName, userPhone, coffeeShopName, coffeeShopAddress string, roleID uuid.UUID) (*models.User, *models.CoffeeShop) {
+	// 1. Create the user
+	user := suite.CreateUser(userName, userPhone)
+
+	// 2. Create the coffee shop, owned by the user
+	cs := &models.CoffeeShop{
+		ID:        uuid.New(),
+		CreatorID: user.ID,
+		Name:      coffeeShopName,
+		Address:   coffeeShopAddress,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := suite.DB.Create(cs).Error
+	suite.Require().NoError(err)
+
+	// 3. Associate the user as a worker with the specified role
+	suite.CreateWorkerForShop(user, cs, roleID)
+
+	return user, cs
 }

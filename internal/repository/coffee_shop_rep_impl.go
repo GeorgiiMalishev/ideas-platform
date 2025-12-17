@@ -26,6 +26,13 @@ func (r *CoffeeShopRepImpl) CreateCoffeeShop(ctx context.Context, shop *models.C
 	return shop, nil
 }
 
+func (r *CoffeeShopRepImpl) CreateCoffeeShopWithTx(ctx context.Context, shop *models.CoffeeShop, tx *gorm.DB) (*models.CoffeeShop, error) {
+	if err := tx.WithContext(ctx).Create(shop).Error; err != nil {
+		return nil, err
+	}
+	return shop, nil
+}
+
 func (r *CoffeeShopRepImpl) UpdateCoffeeShop(ctx context.Context, shop *models.CoffeeShop) error {
 	result := r.db.WithContext(ctx).Save(shop)
 	if result.Error != nil {

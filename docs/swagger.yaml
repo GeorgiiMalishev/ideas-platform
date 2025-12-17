@@ -10,6 +10,16 @@ definitions:
     - coffee_shop_id
     - worker_id
     type: object
+  dto.AdminLoginRequest:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    required:
+    - login
+    - password
+    type: object
   dto.AuthResponse:
     properties:
       access_token:
@@ -136,6 +146,22 @@ definitions:
         type: string
     required:
     - refresh_token
+    type: object
+  dto.RegisterAdminRequest:
+    properties:
+      address:
+        type: string
+      coffee_shop_name:
+        type: string
+      login:
+        type: string
+      password:
+        type: string
+    required:
+    - address
+    - coffee_shop_name
+    - login
+    - password
     type: object
   dto.RewardResponse:
     properties:
@@ -635,6 +661,40 @@ paths:
       summary: Get OTP
       tags:
       - auth
+  /auth/login/admin:
+    post:
+      consumes:
+      - application/json
+      description: Login an admin user
+      parameters:
+      - description: Admin login request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AdminLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Login Admin
+      tags:
+      - auth
   /auth/refresh:
     post:
       consumes:
@@ -667,6 +727,41 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Refresh Access Token
+      tags:
+      - auth
+  /auth/register/admin:
+    post:
+      consumes:
+      - application/json
+      description: Register a new admin user and create a coffee shop associated with
+        them
+      parameters:
+      - description: Admin registration and coffee shop creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterAdminRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict (e.g., login already exists)
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Register Admin and Coffee Shop
       tags:
       - auth
   /coffee-shops:

@@ -20,21 +20,28 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type AuthUsecaseImpl struct {
-	rep       repository.AuthRepository
-	jwtSecret string
-	authCfg   *config.AuthConfig
-	logger    *slog.Logger
+	rep        repository.AuthRepository
+	csRepo     repository.CoffeeShopRep
+	workerRepo repository.WorkerCoffeeShopRepository
+	db         *gorm.DB
+	jwtSecret  string
+	authCfg    *config.AuthConfig
+	logger     *slog.Logger
 }
 
-func NewAuthUsecase(rep repository.AuthRepository, jwtSecret string, authCfg *config.AuthConfig, logger *slog.Logger) AuthUsecase {
+func NewAuthUsecase(rep repository.AuthRepository, csRepo repository.CoffeeShopRep, workerRepo repository.WorkerCoffeeShopRepository, db *gorm.DB, jwtSecret string, authCfg *config.AuthConfig, logger *slog.Logger) AuthUsecase {
 	return &AuthUsecaseImpl{
-		rep:       rep,
-		jwtSecret: jwtSecret,
-		authCfg:   authCfg,
-		logger:    logger,
+		rep:        rep,
+		csRepo:     csRepo,
+		workerRepo: workerRepo,
+		db:         db,
+		jwtSecret:  jwtSecret,
+		authCfg:    authCfg,
+		logger:     logger,
 	}
 }
 
@@ -238,10 +245,10 @@ func (a *AuthUsecaseImpl) createUser(ctx context.Context, req *dto.VerifyOTPRequ
 		return nil, apperrors.NewErrNotValid("phone can't be empty")
 	}
 
-	user := &models.User{
-		Phone: req.Phone,
-		Name:  req.Name,
-	}
+	user := &models.User{}
+	user.Phone = &req.Phone
+	user.Name = &req.Name
+
 	savedUser, err := a.rep.CreateUser(ctx, user)
 	if err != nil {
 		logger.Error("failed create user", "error", err.Error())
@@ -421,6 +428,131 @@ func (a *AuthUsecaseImpl) createJWTToken(user *models.User) (*string, error) {
 		return nil, err
 	}
 	return &tokenString, nil
+}
+
+func (a *AuthUsecaseImpl) RegisterAdminAndCoffeeShop(ctx context.Context, req *dto.RegisterAdminRequest) (*dto.AuthResponse, error) {
+	logger := a.logger.With(
+		"method", "RegisterAdminAndCoffeeShop",
+		"login", req.Login,
+	)
+
+	logger.Debug("starting admin and coffee shop registration")
+
+	_, err := a.rep.GetUserByLogin(ctx, req.Login)
+	if err == nil {
+		logger.Info("user with this login already exists")
+		return nil, apperrors.NewErrConflict("user with this login already exists")
+	}
+	var errNotFound *apperrors.ErrNotFound
+	if !errors.As(err, &errNotFound) {
+		logger.Error("failed to get user by login", "error", err.Error())
+		return nil, err
+	}
+
+	passwordHashBytes, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		logger.Error("failed to hash password", "error", err.Error())
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+	passwordHashStr := string(passwordHashBytes)
+
+	tx := a.db.Begin()
+	if tx.Error != nil {
+		logger.Error("failed to begin transaction", "error", tx.Error.Error())
+		return nil, tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Create User
+	user := &models.User{
+		Login:        &req.Login,
+		PasswordHash: &passwordHashStr,
+	}
+	createdUser, err := a.rep.CreateUserWithTx(ctx, user, tx)
+	if err != nil {
+		logger.Error("failed to create admin user", "error", err.Error())
+		tx.Rollback()
+		return nil, err
+	}
+	logger.Debug("admin user created", "user_id", createdUser.ID)
+
+	// Create Coffee Shop
+	coffeeShop := &models.CoffeeShop{
+		CreatorID: createdUser.ID,
+		Name:      req.CoffeeShopName,
+		Address:   req.Address,
+	}
+	createdCoffeeShop, err := a.csRepo.CreateCoffeeShopWithTx(ctx, coffeeShop, tx)
+	if err != nil {
+		logger.Error("failed to create coffee shop", "error", err.Error())
+		tx.Rollback()
+		return nil, err
+	}
+	logger.Debug("coffee shop created", "coffee_shop_id", createdCoffeeShop.ID)
+
+	// Get Admin Role
+	adminRole, err := a.rep.GetRoleByNameWithTx(ctx, "admin", tx)
+	if err != nil {
+		logger.Error("failed to get admin role", "error", err.Error())
+		tx.Rollback()
+		return nil, err
+	}
+	logger.Debug("admin role fetched", "role_id", adminRole.ID)
+
+	// Create WorkerCoffeeShop Link
+	workerLink := &models.WorkerCoffeeShop{
+		WorkerID:     &createdUser.ID,
+		CoffeeShopID: &createdCoffeeShop.ID,
+		RoleID:       &adminRole.ID,
+	}
+	_, err = a.workerRepo.CreateWithTx(ctx, workerLink, tx)
+	if err != nil {
+		logger.Error("failed to create worker link", "error", err.Error())
+		tx.Rollback()
+		return nil, err
+	}
+	logger.Debug("worker link created")
+
+	if err := tx.Commit().Error; err != nil {
+		logger.Error("failed to commit transaction", "error", err.Error())
+		return nil, err
+	}
+
+	logger.Info("admin and coffee shop registered successfully")
+	return a.makeAuthResponse(ctx, createdUser, "")
+}
+
+func (a *AuthUsecaseImpl) LoginAdmin(ctx context.Context, req *dto.AdminLoginRequest) (*dto.AuthResponse, error) {
+	logger := a.logger.With(
+		"method", "LoginAdmin",
+		"login", req.Login,
+	)
+
+	logger.Debug("starting admin login")
+
+	user, err := a.rep.GetUserByLogin(ctx, req.Login)
+	if err != nil {
+		logger.Info("user with this login not found")
+		return nil, apperrors.NewErrUnauthorized("invalid credentials")
+	}
+
+	if user.PasswordHash == nil {
+		logger.Info("user does not have a password")
+		return nil, apperrors.NewErrUnauthorized("invalid credentials")
+	}
+	
+	err = bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(req.Password))
+	if err != nil {
+		logger.Info("password does not match")
+		return nil, apperrors.NewErrUnauthorized("invalid credentials")
+	}
+
+	logger.Info("admin logged in successfully")
+	return a.makeAuthResponse(ctx, user, "")
 }
 
 func generateRefreshToken() (string, error) {
