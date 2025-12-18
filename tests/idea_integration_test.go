@@ -75,30 +75,83 @@ func (suite *IdeaIntegrationTestSuite) createTestIdea(author *models.User, cs *m
 func (suite *IdeaIntegrationTestSuite) TestCreateIdea() {
 	token, _, coffeeShop, category := suite.createIdeaPrerequisites()
 
+	// Dummy image content (minimal valid JPEG)
+	dummyImageContent := []byte{
+		0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+		0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43,
+		0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+		0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+		0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+		0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+		0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+		0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0xFF, 0xC0, 0x00, 0x11, 0x08, 0x00,
+		0x01, 0x00, 0x01, 0x03, 0x01, 0x22, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11,
+		0x01, 0xFF, 0xC4, 0x00, 0x1F, 0x00, 0x00, 0x01, 0x05, 0x01, 0x01, 0x01,
+		0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+		0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0xFF, 0xC4,
+		0x00, 0xB5, 0x10, 0x00, 0x02, 0x01, 0x03, 0x03, 0x02, 0x04, 0x03, 0x05,
+		0x05, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04,
+		0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x01, 0x00, 0x03, 0x01, 0x01,
+		0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B,
+		0xFF, 0xDA, 0x00, 0x0C, 0x03, 0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00,
+		0x3F, 0x00, 0xBF, 0x40, 0xFF, 0xD9,
+	}
+
 	tests := []struct {
 		name           string
 		token          string
-		body           interface{}
+		formData       map[string]string
+		fileField      string
+		fileContent    []byte
+		fileName       string
+		contentType    string
 		expectedStatus int
 		checkResponse  bool
+		expectedTitle  string
+		expectedImageURL string
 	}{
 		{
-			name:  "Success - Create Idea",
+			name:  "Success - Create Idea without Image",
 			token: token,
-			body: dto.CreateIdeaRequest{
-				Title:        "My New Awesome Idea",
-				Description:  "This is the description of my awesome idea.",
-				CategoryID:   category.ID,
-				CoffeeShopID: coffeeShop.ID,
+			formData: map[string]string{
+				"title":          "My New Awesome Idea",
+				"description":    "This is the description of my awesome idea.",
+				"category_id":    category.ID.String(),
+				"coffee_shop_id": coffeeShop.ID.String(),
 			},
+			contentType:    "multipart/form-data",
 			expectedStatus: http.StatusCreated,
 			checkResponse:  true,
+			expectedTitle:  "My New Awesome Idea",
+			expectedImageURL: "",
+		},
+		{
+			name:  "Success - Create Idea with Image",
+			token: token,
+			formData: map[string]string{
+				"title":          "Idea with Picture",
+				"description":    "This idea has a picture.",
+				"category_id":    category.ID.String(),
+				"coffee_shop_id": coffeeShop.ID.String(),
+			},
+			fileField:      "image",
+			fileContent:    dummyImageContent,
+			fileName:       "test_image.jpg",
+			contentType:    "multipart/form-data",
+			expectedStatus: http.StatusCreated,
+			checkResponse:  true,
+			expectedTitle:  "Idea with Picture",
+			expectedImageURL: "test_image.jpg",
 		},
 		{
 			name:           "Fail - Unauthorized",
 			token:          "",
-			body:           dto.CreateIdeaRequest{},
+			formData:       map[string]string{},
+			contentType:    "multipart/form-data",
 			expectedStatus: http.StatusUnauthorized,
+			expectedTitle: "",
+			expectedImageURL: "",
 		},
 	}
 
@@ -107,9 +160,12 @@ func (suite *IdeaIntegrationTestSuite) TestCreateIdea() {
 			req := TestRequest{
 				method:      http.MethodPost,
 				path:        "/api/v1/ideas",
-				body:        tt.body,
 				token:       tt.token,
-				contentType: "application/json",
+				formData:    tt.formData,
+				fileField:   tt.fileField,
+				fileContent: tt.fileContent,
+				fileName:    tt.fileName,
+				contentType: tt.contentType,
 			}
 			w := suite.MakeRequest(req)
 			suite.Equal(tt.expectedStatus, w.Code)
@@ -118,9 +174,15 @@ func (suite *IdeaIntegrationTestSuite) TestCreateIdea() {
 				var resp dto.IdeaResponse
 				err := json.Unmarshal(w.Body.Bytes(), &resp)
 				suite.NoError(err)
-				suite.Equal("My New Awesome Idea", resp.Title)
+				suite.Equal(tt.expectedTitle, resp.Title)
 				suite.Equal(coffeeShop.ID, *resp.CoffeeShopID)
 				suite.NotEqual(uuid.Nil, resp.ID)
+				if tt.expectedImageURL != "" {
+					suite.NotNil(resp.ImageURL)
+					suite.Contains(*resp.ImageURL, tt.expectedImageURL)
+				} else {
+					suite.Nil(resp.ImageURL)
+				}
 			}
 		})
 	}

@@ -77,19 +77,6 @@ definitions:
       welcome_message:
         type: string
     type: object
-  dto.CreateIdeaRequest:
-    properties:
-      category_id:
-        type: string
-      coffee_shop_id:
-        type: string
-      description:
-        type: string
-      image_url:
-        type: string
-      title:
-        type: string
-    type: object
   dto.CreateRewardTypeRequest:
     properties:
       coffeeShopID:
@@ -1252,15 +1239,25 @@ paths:
   /ideas:
     post:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Create a new idea for a coffee shop
       parameters:
-      - description: Idea information
-        in: body
-        name: idea
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CreateIdeaRequest'
+      - in: formData
+        name: category_id
+        type: string
+      - in: formData
+        name: coffee_shop_id
+        type: string
+      - in: formData
+        name: description
+        type: string
+      - in: formData
+        name: title
+        type: string
+      - description: Image file
+        in: formData
+        name: image
+        type: file
       produces:
       - application/json
       responses:
@@ -1442,6 +1439,33 @@ paths:
       summary: Unlike an idea
       tags:
       - likes
+  /images/{imagePath}:
+    get:
+      description: Get an image by its path stored in MinIO.
+      parameters:
+      - description: Full path of the image (e.g., images/uuid.jpg)
+        in: path
+        name: imagePath
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get image
+      tags:
+      - images
   /logout:
     post:
       consumes:

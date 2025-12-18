@@ -11,8 +11,17 @@ import (
 type Config struct {
 	Server     ServerConfig
 	DB         DBConfig
+	ImageDB    ImageDBConfig
 	App        AppConfig
 	AuthConfig AuthConfig
+}
+
+type ImageDBConfig struct {
+	Endpoint        string `env:"MINIO_ENDPOINT" envDefault:"localhost:9000"`
+	AccessKeyID     string `env:"MINIO_ACCESS_KEY_ID,required"`
+	SecretAccessKey string `env:"MINIO_SECRET_ACCESS_KEY,required"`
+	UseSSL          bool   `env:"MINIO_USE_SSL" envDefault:"false"`
+	BucketName      string `env:"MINIO_BUCKET_NAME" envDefault:"images"`
 }
 
 type ServerConfig struct {

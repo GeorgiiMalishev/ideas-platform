@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"mime/multipart"
 	"os"
 	"time"
 
@@ -22,10 +23,32 @@ import (
 	"github.com/GeorgiiMalishev/ideas-platform/internal/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+// MockImageUsecase is a mock implementation of ImageUsecase for testing.
+type MockImageUsecase struct{}
+
+func (m *MockImageUsecase) UploadImage(ctx context.Context, file *multipart.FileHeader) (string, error) {
+	// Simulate a successful upload by returning a predictable URL
+	return fmt.Sprintf("http://mock-minio/testbucket/%s", file.Filename), nil
+}
+
+func (m *MockImageUsecase) CreateBucket(ctx context.Context) error {
+	// Simulate successful bucket creation
+	return nil
+}
+
+func (m *MockImageUsecase) GetImage(ctx context.Context, objectName string) (*minio.Object, minio.ObjectInfo, error) {
+	// Mock implementation.
+	// Note: Returning nil for *minio.Object will cause a panic if the handler tries to use it.
+	// Since we are not testing the image download endpoint in this suite, this is acceptable for now.
+	// Ideally, we should mock the MinIO client or use a real MinIO instance for integration tests.
+	return nil, minio.ObjectInfo{}, fmt.Errorf("GetImage not implemented in mock")
+}
 
 // BaseTestSuite is a base suite for integration tests
 type BaseTestSuite struct {
@@ -42,6 +65,7 @@ type BaseTestSuite struct {
 	WorkerCoffeeShopRepo repository.WorkerCoffeeShopRepository
 	LikeRepo             repository.LikeRepository
 	CategoryRepo         repository.CategoryRepository
+	ImageUsecase         usecase.ImageUsecase
 	UserRoleID           uuid.UUID
 	AdminRoleID          uuid.UUID
 	Ctx                  context.Context
@@ -51,7 +75,11 @@ type BaseTestSuite struct {
 type TestRequest struct {
 	method      string
 	path        string
-	body        interface{}
+	body        interface{} // For JSON bodies
+	formData    map[string]string // For form data fields
+	fileField   string          // The field name for the file (e.g., "image")
+	fileContent []byte          // The content of the file
+	fileName    string          // The file name
 	contentType string
 	token       string
 }
@@ -70,6 +98,15 @@ func (suite *BaseTestSuite) SetupSuite() {
 	suite.cfg.DB.Name = "ideas_db_test"
 	suite.cfg.DB.User = "postgres"
 	suite.cfg.DB.Password = "postgres"
+
+	// Configure ImageDB for tests
+	suite.cfg.ImageDB.AccessKeyID = "minioadmin"
+	suite.cfg.ImageDB.SecretAccessKey = "minioadmin"
+	suite.cfg.ImageDB.BucketName = "test-bucket" // A dedicated bucket for tests
+	suite.cfg.ImageDB.Endpoint = "localhost:9000" // Assuming MinIO is accessible for tests
+
+	// Configure App version for tests
+	suite.cfg.App.Version = "test"
 
 	// Use a short JWT token timer for tests to satisfy the logout test
 	suite.cfg.AuthConfig.JWTConfig.JWTTokenTimer = 2 * time.Second
@@ -118,6 +155,7 @@ func (suite *BaseTestSuite) SetupSuite() {
 	suite.CategoryRepo = repository.NewCategoryRepository(suite.DB)
 
 	// Usecases
+	suite.ImageUsecase = &MockImageUsecase{} // Initialize mock
 	authUsecase := usecase.NewAuthUsecase(suite.AuthRepo, suite.CoffeeShopRepo, suite.WorkerCoffeeShopRepo, suite.DB, "test-secret", &suite.cfg.AuthConfig, logger)
 	userUsecase := usecase.NewUserUsecase(suite.UserRepo, suite.WorkerCoffeeShopRepo, logger)
 	csUscase := usecase.NewCoffeeShopUsecase(suite.CoffeeShopRepo, suite.WorkerCoffeeShopRepo, suite.AdminRoleID, logger)
@@ -133,15 +171,16 @@ func (suite *BaseTestSuite) SetupSuite() {
 	authHandler := handlers.NewAuthHandler(authUsecase, logger)
 	userHandler := handlers.NewUserHandler(userUsecase, logger)
 	csHandler := handlers.NewCoffeeShopHandler(csUscase, logger)
-	ideaHandler := handlers.NewIdeaHandler(ideaUsecase, logger)
+	ideaHandler := handlers.NewIdeaHandler(ideaUsecase, suite.ImageUsecase, logger)
 	rewardHandler := handlers.NewRewardHandler(rewardUsecase, logger)
 	rewardTypeHandler := handlers.NewRewardTypeHandler(rewardTypeUsecase, logger)
 	workerCoffeeShopHandler := handlers.NewWorkerCoffeeShopHandler(workerCoffeeShopUsecase, logger)
 	likeHandler := handlers.NewLikeHandler(likeUsecase, logger)
 	categoryHandler := handlers.NewCategoryHandler(categoryUsecase, logger)
+	imageHandler := handlers.NewImageHandler(suite.ImageUsecase, suite.cfg, logger)
 
 	// Router
-	appRouter := router.NewRouter(suite.cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, categoryHandler, suite.WorkerCoffeeShopRepo, authUsecase, logger)
+	appRouter := router.NewRouter(suite.cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, categoryHandler, suite.WorkerCoffeeShopRepo, imageHandler, authUsecase, logger)
 	suite.Router = appRouter.SetupRouter()
 }
 
@@ -174,22 +213,49 @@ func (suite *BaseTestSuite) TearDownTest() {
 // MakeRequest is a helper to make an HTTP request
 func (suite *BaseTestSuite) MakeRequest(req TestRequest) *httptest.ResponseRecorder {
 	w := httptest.NewRecorder()
-	var bodyReader *bytes.Buffer
+	var httpReq *http.Request
+	var err error
 
-	if req.body != nil {
-		bodyBytes, err := json.Marshal(req.body)
+	if req.contentType == "multipart/form-data" {
+		bodyBuf := &bytes.Buffer{}
+		writer := multipart.NewWriter(bodyBuf)
+
+		for key, value := range req.formData {
+			fw, err := writer.CreateFormField(key)
+			suite.Require().NoError(err)
+			_, err = fw.Write([]byte(value))
+			suite.Require().NoError(err)
+		}
+
+		if len(req.fileContent) > 0 {
+			fw, err := writer.CreateFormFile(req.fileField, req.fileName)
+			suite.Require().NoError(err)
+			_, err = fw.Write(req.fileContent)
+			suite.Require().NoError(err)
+		}
+
+		writer.Close()
+
+		httpReq, err = http.NewRequest(req.method, req.path, bodyBuf)
 		suite.Require().NoError(err)
-		bodyReader = bytes.NewBuffer(bodyBytes)
+		httpReq.Header.Set("Content-Type", writer.FormDataContentType())
+
 	} else {
-		bodyReader = bytes.NewBuffer(nil)
+		var bodyReader *bytes.Buffer
+		if req.body != nil {
+			bodyBytes, err := json.Marshal(req.body)
+			suite.Require().NoError(err)
+			bodyReader = bytes.NewBuffer(bodyBytes)
+		} else {
+			bodyReader = bytes.NewBuffer(nil)
+		}
+		httpReq, err = http.NewRequest(req.method, req.path, bodyReader)
+		suite.Require().NoError(err)
+		if req.contentType != "" {
+			httpReq.Header.Set("Content-Type", req.contentType)
+		}
 	}
 
-	httpReq, err := http.NewRequest(req.method, req.path, bodyReader)
-	suite.Require().NoError(err)
-
-	if req.contentType != "" {
-		httpReq.Header.Set("Content-Type", req.contentType)
-	}
 	if req.token != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+req.token)
 	}

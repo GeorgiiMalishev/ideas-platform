@@ -26,6 +26,7 @@ type AppRouter struct {
 	likeHandler             *handlers.LikeHandler
 	categoryHandler         *handlers.CategoryHandler
 	workerCoffeeShopRepo    repository.WorkerCoffeeShopRepository
+	imageHandler            *handlers.ImageHandler
 
 	authUsecase usecase.AuthUsecase
 	logger      *slog.Logger
@@ -41,7 +42,8 @@ func NewRouter(cfg *config.Config,
 	workerCoffeeShopHandler *handlers.WorkerCoffeeShopHandler,
 	likeHandler *handlers.LikeHandler,
 	categoryHandler *handlers.CategoryHandler,
-	workerCoffeeShopRepo repository.WorkerCoffeeShopRepository, // New parameter
+	workerCoffeeShopRepo repository.WorkerCoffeeShopRepository,
+	imageHandler *handlers.ImageHandler, // Add this line
 
 	authUsecase usecase.AuthUsecase,
 	logger *slog.Logger,
@@ -57,7 +59,8 @@ func NewRouter(cfg *config.Config,
 		workerCoffeeShopHandler: workerCoffeeShopHandler,
 		likeHandler:             likeHandler,
 		categoryHandler:         categoryHandler,
-		workerCoffeeShopRepo:    workerCoffeeShopRepo, // Assignment
+		workerCoffeeShopRepo:    workerCoffeeShopRepo,
+		imageHandler:            imageHandler, // Add this line
 
 		authUsecase: authUsecase,
 		logger:      logger,
@@ -85,6 +88,9 @@ func (ar AppRouter) SetupRouter() *gin.Engine {
 		// ideas
 		v1.GET("/ideas/:id", ar.ideaHandler.GetIdea)
 		v1.GET("/coffee-shops/:id/ideas", ar.ideaHandler.GetIdeasFromShop)
+
+		// images (public access)
+		v1.GET("/images/*imagePath", ar.imageHandler.GetImage)
 
 		// rewards
 		v1.GET("/rewards/:id", ar.rewardHandler.GetReward)

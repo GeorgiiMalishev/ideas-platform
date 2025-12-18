@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"github.com/google/uuid"
 
 	"github.com/GeorgiiMalishev/ideas-platform/internal/dto"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/usecase"
@@ -11,40 +12,81 @@ import (
 )
 
 type IdeaHandler struct {
-	uc     usecase.IdeaUsecase
-	logger *slog.Logger
+	uc          usecase.IdeaUsecase
+	imageUsecase usecase.ImageUsecase
+	logger      *slog.Logger
 }
 
-func NewIdeaHandler(uc usecase.IdeaUsecase, logger *slog.Logger) *IdeaHandler {
+func NewIdeaHandler(uc usecase.IdeaUsecase, imageUsecase usecase.ImageUsecase, logger *slog.Logger) *IdeaHandler {
 	return &IdeaHandler{
-		uc:     uc,
-		logger: logger,
+		uc:          uc,
+		imageUsecase: imageUsecase,
+		logger:      logger,
 	}
 }
 
 // @Summary Create a new idea
 // @Description Create a new idea for a coffee shop
 // @Tags ideas
-// @Accept json
+// @Accept mpfd
 // @Produce json
-// @Param idea body dto.CreateIdeaRequest true "Idea information"
+// @Param idea formData dto.CreateIdeaRequest true "Idea information"
+// @Param image formData file false "Image file"
 // @Success 201 {object} dto.IdeaResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /ideas [post]
 // @Security ApiKeyAuth
 func (h *IdeaHandler) CreateIdea(c *gin.Context) {
-	var req dto.CreateIdeaRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		h.logger.Error("failed to bind idea create request: ", slog.String("error", err.Error()))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	title := c.PostForm("title")
+	description := c.PostForm("description")
+	coffeeShopIDStr := c.PostForm("coffee_shop_id")
+	categoryIDStr := c.PostForm("category_id")
+
+	coffeeShopID, err := uuid.Parse(coffeeShopIDStr)
+	if err != nil {
+		h.logger.Error("failed to parse coffeeShopID: ", slog.String("error", err.Error()))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid coffee_shop_id"})
 		return
 	}
+	categoryID, err := uuid.Parse(categoryIDStr)
+	if err != nil {
+		h.logger.Error("failed to parse categoryID: ", slog.String("error", err.Error()))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category_id"})
+		return
+	}
+
+	req := &dto.CreateIdeaRequest{
+		Title:        title,
+		Description:  description,
+		CoffeeShopID: coffeeShopID,
+		CategoryID:   categoryID,
+	}
+
 	userID, ok := parseActorIDFromContext(h.logger, c)
 	if !ok {
 		return
 	}
-	resp, err := h.uc.CreateIdea(c.Request.Context(), userID, &req)
+
+	file, err := c.FormFile("image")
+	if err != nil && err != http.ErrMissingFile {
+		h.logger.Error("failed to get image from form: ", slog.String("error", err.Error()))
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid image file"})
+		return
+	}
+
+	var imageURL *string
+	if file != nil {
+		uploadedURL, err := h.imageUsecase.UploadImage(c.Request.Context(), file)
+		if err != nil {
+			h.logger.Error("failed to upload image: ", slog.String("error", err.Error()))
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to upload image"})
+			return
+		}
+		imageURL = &uploadedURL
+	}
+
+	resp, err := h.uc.CreateIdea(c.Request.Context(), userID, req, imageURL)
 	if err != nil {
 		HandleAppErrors(err, h.logger, c)
 		return

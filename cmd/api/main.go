@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -9,6 +10,7 @@ import (
 	_ "github.com/GeorgiiMalishev/ideas-platform/docs"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/db"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/handlers"
+	"github.com/GeorgiiMalishev/ideas-platform/internal/minio"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/models"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/repository"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/router"
@@ -36,6 +38,17 @@ func main() {
 	db, err := db.InitDB(cfg)
 	if err != nil {
 		logger.Error("Failed to connect to database:", slog.String("error", err.Error()))
+		return
+	}
+	minioClient, err := minio.NewMinioClient(&cfg.ImageDB)
+	if err != nil {
+		logger.Error("Failed to connect to minio:", slog.String("error", err.Error()))
+		return
+	}
+	imageUsecase := usecase.NewImageUsecase(minioClient, cfg.ImageDB.BucketName)
+	err = imageUsecase.CreateBucket(context.Background())
+	if err != nil {
+		logger.Error("Failed to create minio bucket:", slog.String("error", err.Error()))
 		return
 	}
 
@@ -82,7 +95,9 @@ func main() {
 	ideaRepo := repository.NewIdeaRepository(db)
 	likeRepo := repository.NewLikeRepository(db)
 	ideaUsecase := usecase.NewIdeaUsecase(ideaRepo, workerCsRepo, likeRepo, logger)
-	ideaHandler := handlers.NewIdeaHandler(ideaUsecase, logger)
+	ideaHandler := handlers.NewIdeaHandler(ideaUsecase, imageUsecase, logger)
+
+	imageHandler := handlers.NewImageHandler(imageUsecase, cfg, logger)
 
 	likeUsecase := usecase.NewLikeUsecase(likeRepo, logger)
 	likeHandler := handlers.NewLikeHandler(likeUsecase, logger)
@@ -103,10 +118,11 @@ func main() {
 	categoryUsecase := usecase.NewCategoryUsecase(categoryRepo, accessControlUsecase)
 	categoryHandler := handlers.NewCategoryHandler(categoryUsecase, logger)
 
-	ar := router.NewRouter(cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, categoryHandler, workerCsRepo, authUsecase, logger)
+	ar := router.NewRouter(cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, categoryHandler, workerCsRepo, imageHandler, authUsecase, logger)
 	r := ar.SetupRouter()
 	err = r.Run(":8080")
 	if err != nil {
 		fmt.Println("Failed to start server:", err)
+		return
 	}
 }

@@ -28,17 +28,20 @@ func NewIdeaUsecase(ideaRepo repository.IdeaRepository, workerCsRepo repository.
 	}
 }
 
-func (u *IdeaUsecaseImpl) CreateIdea(ctx context.Context, userID uuid.UUID, req *dto.CreateIdeaRequest) (*dto.IdeaResponse, error) {
+func (u *IdeaUsecaseImpl) CreateIdea(ctx context.Context, userID uuid.UUID, req *dto.CreateIdeaRequest, imageURL *string) (*dto.IdeaResponse, error) {
 	logger := u.logger.With("method", "CreateIdea", "userID", userID.String())
 	logger.Debug("starting create idea")
 
+	csID := uuid.UUID(req.CoffeeShopID)
+	catID := uuid.UUID(req.CategoryID)
+
 	idea := &models.Idea{
 		CreatorID:    &userID,
-		CoffeeShopID: &req.CoffeeShopID,
-		CategoryID:   &req.CategoryID,
+		CoffeeShopID: &csID,
+		CategoryID:   &catID,
 		Title:        req.Title,
 		Description:  req.Description,
-		ImageURL:     req.ImageURL,
+		ImageURL:     imageURL,
 	}
 
 	createdIdea, err := u.ideaRepo.CreateIdea(ctx, idea)

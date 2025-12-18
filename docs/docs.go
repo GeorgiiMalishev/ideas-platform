@@ -1518,7 +1518,7 @@ const docTemplate = `{
                 ],
                 "description": "Create a new idea for a coffee shop",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -1529,13 +1529,30 @@ const docTemplate = `{
                 "summary": "Create a new idea",
                 "parameters": [
                     {
-                        "description": "Idea information",
-                        "name": "idea",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CreateIdeaRequest"
-                        }
+                        "type": "string",
+                        "name": "category_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "coffee_shop_id",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "description",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "name": "title",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Image file",
+                        "name": "image",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
@@ -1798,6 +1815,47 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/images/{imagePath}": {
+            "get": {
+                "description": "Get an image by its path stored in MinIO.",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "images"
+                ],
+                "summary": "Get image",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Full path of the image (e.g., images/uuid.jpg)",
+                        "name": "imagePath",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -2553,26 +2611,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "welcome_message": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.CreateIdeaRequest": {
-            "type": "object",
-            "properties": {
-                "category_id": {
-                    "type": "string"
-                },
-                "coffee_shop_id": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "image_url": {
-                    "type": "string"
-                },
-                "title": {
                     "type": "string"
                 }
             }

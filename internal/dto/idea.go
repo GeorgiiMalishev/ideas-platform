@@ -3,11 +3,10 @@ package dto
 import "github.com/google/uuid"
 
 type CreateIdeaRequest struct {
-	CoffeeShopID uuid.UUID `json:"coffee_shop_id"`
-	CategoryID   uuid.UUID `json:"category_id"`
-	Title        string    `json:"title"`
-	Description  string    `json:"description"`
-	ImageURL     *string   `json:"image_url"`
+	CoffeeShopID uuid.UUID `form:"coffee_shop_id"`
+	CategoryID   uuid.UUID `form:"category_id"`
+	Title        string    `form:"title"`
+	Description  string    `form:"description"`
 }
 
 type UpdateIdeaRequest struct {
