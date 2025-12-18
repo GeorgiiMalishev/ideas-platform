@@ -84,6 +84,17 @@ func (suite *LikeIntegrationTestSuite) TestLikeIdea() {
 		suite.NoError(err)
 	})
 
+	suite.Run("Fail - Like Idea Again", func() {
+		// Like again with the same token
+		req := TestRequest{
+			method: http.MethodPost,
+			path:   fmt.Sprintf("/api/v1/ideas/%s/like", idea.ID),
+			token:  token,
+		}
+		w := suite.MakeRequest(req)
+		suite.Equal(http.StatusConflict, w.Code)
+	})
+
 	suite.Run("Fail - Unauthorized", func() {
 		req := TestRequest{
 			method: http.MethodPost,

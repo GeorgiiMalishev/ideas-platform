@@ -62,6 +62,17 @@ definitions:
       welcome_message:
         type: string
     type: object
+  dto.CommentResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      text:
+        type: string
+    type: object
   dto.CreateCategory:
     properties:
       description:
@@ -85,6 +96,16 @@ definitions:
         type: string
       welcome_message:
         type: string
+    type: object
+  dto.CreateCommentRequest:
+    properties:
+      name:
+        type: string
+      text:
+        type: string
+    required:
+    - name
+    - text
     type: object
   dto.CreateRewardTypeRequest:
     properties:
@@ -1384,6 +1405,149 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Update idea by ID
+      tags:
+      - ideas
+  /ideas/{id}/comments:
+    get:
+      description: Get a list of comments for a specific idea with optional pagination
+      parameters:
+      - description: Idea ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.CommentResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get comments for an idea
+      tags:
+      - ideas
+    post:
+      consumes:
+      - application/json
+      description: Create a new comment for a specific idea
+      parameters:
+      - description: Idea ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comment information
+        in: body
+        name: comment
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.CommentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new comment for an idea
+      tags:
+      - ideas
+  /ideas/{id}/comments/{comment_id}:
+    delete:
+      description: Delete a specific comment by ID for a given idea
+      parameters:
+      - description: Idea ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Comment ID
+        in: path
+        name: comment_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a comment
       tags:
       - ideas
   /ideas/{id}/like:

@@ -25,6 +25,7 @@ type AppRouter struct {
 	workerCoffeeShopHandler *handlers.WorkerCoffeeShopHandler
 	likeHandler             *handlers.LikeHandler
 	categoryHandler         *handlers.CategoryHandler
+	commentHandler          *handlers.CommentHandler
 	workerCoffeeShopRepo    repository.WorkerCoffeeShopRepository
 	imageHandler            *handlers.ImageHandler
 
@@ -42,6 +43,7 @@ func NewRouter(cfg *config.Config,
 	workerCoffeeShopHandler *handlers.WorkerCoffeeShopHandler,
 	likeHandler *handlers.LikeHandler,
 	categoryHandler *handlers.CategoryHandler,
+	commentHandler *handlers.CommentHandler,
 	workerCoffeeShopRepo repository.WorkerCoffeeShopRepository,
 	imageHandler *handlers.ImageHandler, // Add this line
 
@@ -59,6 +61,7 @@ func NewRouter(cfg *config.Config,
 		workerCoffeeShopHandler: workerCoffeeShopHandler,
 		likeHandler:             likeHandler,
 		categoryHandler:         categoryHandler,
+		commentHandler:          commentHandler,
 		workerCoffeeShopRepo:    workerCoffeeShopRepo,
 		imageHandler:            imageHandler, // Add this line
 
@@ -135,6 +138,11 @@ func (ar AppRouter) SetupRouter() *gin.Engine {
 		authRequired.POST("/coffee-shops/:id/categories", ar.categoryHandler.Create)
 		authRequired.PUT("/coffee-shops/:id/categories/:category_id", ar.categoryHandler.Update)
 		authRequired.DELETE("/coffee-shops/:id/categories/:category_id", ar.categoryHandler.Delete)
+
+		// comments
+		authRequired.POST("/ideas/:id/comments", ar.commentHandler.CreateComment)
+		authRequired.GET("/ideas/:id/comments", ar.commentHandler.GetComments)
+		authRequired.DELETE("/ideas/:id/comments/:comment_id", ar.commentHandler.DeleteComment)
 
 		authRequired.GET("/users/:id/coffee-shops", ar.workerCoffeeShopHandler.ListCoffeeShopsForWorker)
 	}

@@ -65,6 +65,7 @@ type BaseTestSuite struct {
 	WorkerCoffeeShopRepo repository.WorkerCoffeeShopRepository
 	LikeRepo             repository.LikeRepository
 	CategoryRepo         repository.CategoryRepository
+	CommentRepo          repository.CommentRepository
 	ImageUsecase         usecase.ImageUsecase
 	UserRoleID           uuid.UUID
 	AdminRoleID          uuid.UUID
@@ -153,6 +154,7 @@ func (suite *BaseTestSuite) SetupSuite() {
 	suite.WorkerCoffeeShopRepo = repository.NewWorkerCoffeeShopRepository(suite.DB)
 	suite.LikeRepo = repository.NewLikeRepository(suite.DB)
 	suite.CategoryRepo = repository.NewCategoryRepository(suite.DB)
+	suite.CommentRepo = repository.NewCommentRepository(suite.DB)
 
 	// Usecases
 	suite.ImageUsecase = &MockImageUsecase{} // Initialize mock
@@ -166,6 +168,7 @@ func (suite *BaseTestSuite) SetupSuite() {
 	likeUsecase := usecase.NewLikeUsecase(suite.LikeRepo, logger)
 	accessControlUsecase := usecase.NewAccessControlUsecase(suite.WorkerCoffeeShopRepo, logger)
 	categoryUsecase := usecase.NewCategoryUsecase(suite.CategoryRepo, accessControlUsecase)
+	commentUsecase := usecase.NewCommentUsecase(suite.CommentRepo, suite.IdeaRepo, suite.WorkerCoffeeShopRepo, logger)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authUsecase, logger)
@@ -177,10 +180,11 @@ func (suite *BaseTestSuite) SetupSuite() {
 	workerCoffeeShopHandler := handlers.NewWorkerCoffeeShopHandler(workerCoffeeShopUsecase, logger)
 	likeHandler := handlers.NewLikeHandler(likeUsecase, logger)
 	categoryHandler := handlers.NewCategoryHandler(categoryUsecase, logger)
+	commentHandler := handlers.NewCommentHandler(commentUsecase, logger)
 	imageHandler := handlers.NewImageHandler(suite.ImageUsecase, suite.cfg, logger)
 
 	// Router
-	appRouter := router.NewRouter(suite.cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, categoryHandler, suite.WorkerCoffeeShopRepo, imageHandler, authUsecase, logger)
+	appRouter := router.NewRouter(suite.cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, categoryHandler, commentHandler, suite.WorkerCoffeeShopRepo, imageHandler, authUsecase, logger)
 	suite.Router = appRouter.SetupRouter()
 }
 

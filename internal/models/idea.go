@@ -30,9 +30,9 @@ func (Idea) TableName() string {
 
 type IdeaLike struct {
 	ID        uuid.UUID  `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
-	UserID    *uuid.UUID `gorm:"type:uuid"`
+	UserID    *uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_idea"`
 	User      User       `gorm:"foreignKey:UserID;references:ID;constraint:OnDelete:CASCADE"`
-	IdeaID    *uuid.UUID `gorm:"type:uuid"`
+	IdeaID    *uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_idea"`
 	Idea      Idea       `gorm:"foreignKey:IdeaID;references:ID;constraint:OnDelete:CASCADE"`
 	CreatedAt time.Time  `gorm:"autoCreateTime"`
 }
@@ -48,6 +48,7 @@ type IdeaComment struct {
 	IdeaID    *uuid.UUID `gorm:"type:uuid"`
 	Idea      Idea       `gorm:"foreignKey:IdeaID;references:ID;constraint:OnDelete:CASCADE"`
 	Text      string     `gorm:"not null"`
+	AuthorName string    `gorm:"not null;size:100"`
 	IsDeleted bool       `gorm:"default:false"`
 	UpdatedAt time.Time  `gorm:"autoUpdateTime"`
 	CreatedAt time.Time  `gorm:"autoCreateTime"`

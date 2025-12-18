@@ -52,6 +52,12 @@ func main() {
 		return
 	}
 
+	// Clean up duplicate likes before migration
+	err = db.Exec(`DELETE FROM idea_like a USING idea_like b WHERE a.id < b.id AND a.user_id = b.user_id AND a.idea_id = b.idea_id`).Error
+	if err != nil {
+		logger.Error("Failed to remove duplicate likes:", slog.String("error", err.Error()))
+	}
+
 	err = db.AutoMigrate(
 		&models.User{},
 		&models.BannedUser{},
@@ -118,7 +124,11 @@ func main() {
 	categoryUsecase := usecase.NewCategoryUsecase(categoryRepo, accessControlUsecase)
 	categoryHandler := handlers.NewCategoryHandler(categoryUsecase, logger)
 
-	ar := router.NewRouter(cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, categoryHandler, workerCsRepo, imageHandler, authUsecase, logger)
+	commentRepo := repository.NewCommentRepository(db)
+	commentUsecase := usecase.NewCommentUsecase(commentRepo, ideaRepo, workerCsRepo, logger)
+	commentHandler := handlers.NewCommentHandler(commentUsecase, logger)
+
+	ar := router.NewRouter(cfg, userHandler, csHandler, authHandler, ideaHandler, rewardHandler, rewardTypeHandler, workerCoffeeShopHandler, likeHandler, categoryHandler, commentHandler, workerCsRepo, imageHandler, authUsecase, logger)
 	r := ar.SetupRouter()
 	err = r.Run(":8080")
 	if err != nil {

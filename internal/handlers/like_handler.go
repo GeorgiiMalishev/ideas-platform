@@ -46,8 +46,7 @@ func (h *LikeHandler) LikeIdea(c *gin.Context) {
 
 	err = h.usecase.LikeIdea(c.Request.Context(), userID, ideaID)
 	if err != nil {
-		h.logger.Error("failed to like idea", slog.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to like idea"})
+		HandleAppErrors(err, h.logger, c)
 		return
 	}
 
@@ -79,8 +78,7 @@ func (h *LikeHandler) UnlikeIdea(c *gin.Context) {
 
 	err = h.usecase.UnlikeIdea(c.Request.Context(), userID, ideaID)
 	if err != nil {
-		h.logger.Error("failed to unlike idea", slog.String("error", err.Error()))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unlike idea"})
+		HandleAppErrors(err, h.logger, c)
 		return
 	}
 

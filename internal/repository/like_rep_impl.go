@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	apperrors "github.com/GeorgiiMalishev/ideas-platform/internal/app_errors"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -17,6 +18,14 @@ func NewLikeRepository(db *gorm.DB) LikeRepository {
 }
 
 func (r *likeRepository) LikeIdea(ctx context.Context, userID, ideaID uuid.UUID) error {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&models.IdeaLike{}).Where("user_id = ? AND idea_id = ?", userID, ideaID).Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return apperrors.NewErrConflict("user already liked this idea")
+	}
+
 	like := models.IdeaLike{
 		UserID: &userID,
 		IdeaID: &ideaID,
