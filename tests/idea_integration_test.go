@@ -177,6 +177,7 @@ func (suite *IdeaIntegrationTestSuite) TestCreateIdea() {
 				suite.Equal(tt.expectedTitle, resp.Title)
 				suite.Equal(coffeeShop.ID, *resp.CoffeeShopID)
 				suite.NotEqual(uuid.Nil, resp.ID)
+				suite.False(resp.CreatedAt.IsZero(), "CreatedAt should not be zero")
 				if tt.expectedImageURL != "" {
 					suite.NotNil(resp.ImageURL)
 					suite.Contains(*resp.ImageURL, tt.expectedImageURL)
@@ -208,6 +209,7 @@ func (suite *IdeaIntegrationTestSuite) TestGetAllIdeas() {
 	for _, i := range resp {
 		if i.ID == idea.ID {
 			found = true
+			suite.False(i.CreatedAt.IsZero(), "CreatedAt should not be zero")
 			break
 		}
 	}
@@ -226,11 +228,12 @@ func (suite *IdeaIntegrationTestSuite) TestGetIdea() {
 
 	suite.Equal(http.StatusOK, w.Code)
 
-	var resp models.Idea
+	var resp dto.IdeaResponse
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	suite.NoError(err)
 	suite.Equal(idea.ID, resp.ID)
 	suite.Equal(idea.Title, resp.Title)
+	suite.False(resp.CreatedAt.IsZero(), "CreatedAt should not be zero")
 }
 
 func (suite *IdeaIntegrationTestSuite) TestUpdateIdea() {

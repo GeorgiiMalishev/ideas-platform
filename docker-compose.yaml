@@ -24,7 +24,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d ideas_db"]
@@ -43,7 +43,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_test_data:/var/lib/postgresql/data
+      - postgres_test_data:/var/lib/postgresql
       - ./init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d ideas_db_test"]

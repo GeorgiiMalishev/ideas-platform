@@ -254,6 +254,7 @@ func toIdeaResponse(idea *models.Idea, likes int) *dto.IdeaResponse {
 		Description:  idea.Description,
 		ImageURL:     idea.ImageURL,
 		Likes:        likes,
+		CreatedAt:    idea.CreatedAt,
 	}
 }
 

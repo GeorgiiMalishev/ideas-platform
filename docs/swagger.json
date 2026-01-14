@@ -7,7 +7,6 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
         "/admin/coffee-shops/{id}/workers": {
@@ -2998,6 +2997,9 @@
                 "coffee_shop_id": {
                     "type": "string"
                 },
+                "created_at": {
+                    "type": "string"
+                },
                 "creator_id": {
                     "type": "string"
                 },
@@ -3014,6 +3016,9 @@
                     "type": "integer"
                 },
                 "status_id": {
+                    "type": "string"
+                },
+                "status_name": {
                     "type": "string"
                 },
                 "title": {

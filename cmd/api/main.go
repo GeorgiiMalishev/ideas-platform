@@ -8,10 +8,9 @@ import (
 
 	"github.com/GeorgiiMalishev/ideas-platform/config"
 	_ "github.com/GeorgiiMalishev/ideas-platform/docs"
-	"github.com/GeorgiiMalishev/ideas-platform/internal/db"
+	dbPkg "github.com/GeorgiiMalishev/ideas-platform/internal/db"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/handlers"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/minio"
-	"github.com/GeorgiiMalishev/ideas-platform/internal/models"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/repository"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/router"
 	"github.com/GeorgiiMalishev/ideas-platform/internal/usecase"
@@ -23,7 +22,6 @@ import (
 // @termsOfService http://swagger.io/terms/
 
 // @BasePath /api/v1
-// @host localhost:8080
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization
@@ -35,7 +33,7 @@ func main() {
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
 
-	db, err := db.InitDB(cfg)
+	db, err := dbPkg.InitDB(cfg)
 	if err != nil {
 		logger.Error("Failed to connect to database:", slog.String("error", err.Error()))
 		return
@@ -52,31 +50,11 @@ func main() {
 		return
 	}
 
-	err = db.AutoMigrate(
-		&models.User{},
-		&models.BannedUser{},
-		&models.Role{},
-		&models.CoffeeShop{},
-		&models.WorkerCoffeeShop{},
-		&models.Category{},
-		&models.Idea{},
-		&models.IdeaLike{},
-		&models.IdeaComment{},
-		&models.Reward{},
-		&models.RewardType{},
-		&models.OTP{},
-		&models.UserRefreshToken{},
-	)
+	adminRoleID, err := dbPkg.Setup(db, logger)
 	if err != nil {
-		logger.Error("Failed to auto-migrate database:", slog.String("error", err.Error()))
+		logger.Error("Failed to setup database:", slog.String("error", err.Error()))
 		return
 	}
-
-	adminRole := models.Role{
-		Name: "admin",
-	}
-	db.FirstOrCreate(&adminRole, "name = ?", "admin")
-	adminRoleID := adminRole.ID
 
 	workerCsRepo := repository.NewWorkerCoffeeShopRepository(db)
 

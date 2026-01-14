@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type CreateIdeaRequest struct {
 	CoffeeShopID uuid.UUID `form:"coffee_shop_id"`
@@ -28,6 +32,7 @@ type IdeaResponse struct {
 	Description  string     `json:"description"`
 	ImageURL     *string    `json:"image_url"`
 	Likes        int        `json:"likes"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 type GetIdeasRequest struct {
