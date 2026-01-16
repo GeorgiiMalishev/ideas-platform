@@ -139,6 +139,7 @@ func (ar AppRouter) SetupRouter() *gin.Engine {
 		authRequired.DELETE("/ideas/:id", ar.ideaHandler.DeleteIdea)
 		authRequired.POST("/ideas/:id/like", ar.likeHandler.LikeIdea)
 		authRequired.DELETE("/ideas/:id/unlike", ar.likeHandler.UnlikeIdea)
+		authRequired.GET("/ideas/:id/liked", ar.likeHandler.HasUserLiked)
 		authRequired.GET("/rewards/type/:id", ar.rewardTypeHandler.GetRewardType)
 
 		// categories

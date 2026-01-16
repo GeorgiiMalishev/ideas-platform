@@ -9,4 +9,5 @@ import (
 type LikeUsecase interface {
 	LikeIdea(ctx context.Context, userID, ideaID uuid.UUID) error
 	UnlikeIdea(ctx context.Context, userID, ideaID uuid.UUID) error
+	HasUserLiked(ctx context.Context, userID, ideaID uuid.UUID) (bool, error)
 }

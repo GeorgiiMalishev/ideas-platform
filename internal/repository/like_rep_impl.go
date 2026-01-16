@@ -38,7 +38,23 @@ func (r *likeRepository) UnlikeIdea(ctx context.Context, userID, ideaID uuid.UUI
 }
 
 func (r *likeRepository) GetLikesCount(ctx context.Context, ideaID uuid.UUID) (int64, error) {
+
 	var count int64
+
 	err := r.db.WithContext(ctx).Model(&models.IdeaLike{}).Where("idea_id = ?", ideaID).Count(&count).Error
+
 	return count, err
+
+}
+
+
+
+func (r *likeRepository) HasUserLiked(ctx context.Context, userID, ideaID uuid.UUID) (bool, error) {
+
+	var count int64
+
+	err := r.db.WithContext(ctx).Model(&models.IdeaLike{}).Where("user_id = ? AND idea_id = ?", userID, ideaID).Count(&count).Error
+
+	return count > 0, err
+
 }

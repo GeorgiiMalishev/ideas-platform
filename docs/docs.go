@@ -2000,6 +2000,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/ideas/{id}/liked": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Check if the current user has liked an idea by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "likes"
+                ],
+                "summary": "Check if user liked an idea",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Idea ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.HasLikedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/ideas/{id}/unlike": {
             "delete": {
                 "security": [
@@ -2992,6 +3044,14 @@ const docTemplate = `{
                 },
                 "reward_type_id": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.HasLikedResponse": {
+            "type": "object",
+            "properties": {
+                "has_liked": {
+                    "type": "boolean"
                 }
             }
         },

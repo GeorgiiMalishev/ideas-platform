@@ -27,3 +27,7 @@ func (u *likeUsecase) LikeIdea(ctx context.Context, userID, ideaID uuid.UUID) er
 func (u *likeUsecase) UnlikeIdea(ctx context.Context, userID, ideaID uuid.UUID) error {
 	return u.likeRepo.UnlikeIdea(ctx, userID, ideaID)
 }
+
+func (u *likeUsecase) HasUserLiked(ctx context.Context, userID, ideaID uuid.UUID) (bool, error) {
+	return u.likeRepo.HasUserLiked(ctx, userID, ideaID)
+}

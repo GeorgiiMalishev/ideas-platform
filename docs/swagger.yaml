@@ -129,6 +129,11 @@ definitions:
     - idea_id
     - reward_type_id
     type: object
+  dto.HasLikedResponse:
+    properties:
+      has_liked:
+        type: boolean
+    type: object
   dto.IdeaResponse:
     properties:
       category_id:
@@ -1589,6 +1594,39 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Like an idea
+      tags:
+      - likes
+  /ideas/{id}/liked:
+    get:
+      description: Check if the current user has liked an idea by its ID
+      parameters:
+      - description: Idea ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HasLikedResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Check if user liked an idea
       tags:
       - likes
   /ideas/{id}/unlike:

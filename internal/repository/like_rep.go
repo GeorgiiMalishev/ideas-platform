@@ -10,4 +10,5 @@ type LikeRepository interface {
 	LikeIdea(ctx context.Context, userID, ideaID uuid.UUID) error
 	UnlikeIdea(ctx context.Context, userID, ideaID uuid.UUID) error
 	GetLikesCount(ctx context.Context, ideaID uuid.UUID) (int64, error)
+	HasUserLiked(ctx context.Context, userID, ideaID uuid.UUID) (bool, error)
 }
