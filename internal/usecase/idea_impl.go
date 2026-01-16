@@ -141,21 +141,50 @@ func (u *IdeaUsecaseImpl) UpdateIdea(ctx context.Context, userID, ideaID uuid.UU
 	logger := u.logger.With("method", "UpdateIdea", "userID", userID.String(), "ideaID", ideaID.String())
 	logger.Debug("starting update idea")
 
-	idea, err := u.getIfCreator(ctx, userID, ideaID)
+	idea, err := u.ideaRepo.GetIdea(ctx, ideaID)
 	if err != nil {
+		var errNotFound *apperrors.ErrNotFound
+		if errors.As(err, &errNotFound) {
+			logger.Info("idea not found")
+			return err
+		}
+		logger.Error("failed to get idea", "error", err.Error())
 		return err
+	}
+
+	isCreator := idea.CreatorID != nil && userID == *idea.CreatorID
+	if !isCreator {
+		if idea.CoffeeShopID == nil {
+			logger.Info("access denied: idea has no coffee shop and user is not creator")
+			return apperrors.NewErrAccessDenied("access denied")
+		}
+		err := CheckShopAdminAccess(ctx, u.logger, u.workerCsRepo, userID, *idea.CoffeeShopID)
+		if err != nil {
+			logger.Info("access denied: user is not creator or shop admin")
+			return err
+		}
 	}
 
 	if req.CategoryID != nil {
 		idea.CategoryID = req.CategoryID
 	}
 	if req.StatusID != nil {
-		_, err := u.statusRepo.GetByID(ctx, *req.StatusID)
+		if idea.CoffeeShopID == nil {
+			logger.Info("access denied: idea has no coffee shop for status update")
+			return apperrors.NewErrAccessDenied("access denied")
+		}
+		err := CheckShopAdminAccess(ctx, u.logger, u.workerCsRepo, userID, *idea.CoffeeShopID)
+		if err != nil {
+			logger.Info("access denied: only admin can change status")
+			return err
+		}
+		status, err := u.statusRepo.GetByID(ctx, *req.StatusID)
 		if err != nil {
 			logger.Error("failed to get status", "error", err.Error())
 			return err
 		}
 		idea.StatusID = req.StatusID
+		idea.Status = status
 	}
 	if req.Title != nil {
 		idea.Title = *req.Title
